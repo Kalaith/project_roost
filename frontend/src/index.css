@@ -82,10 +82,50 @@ a {
 }
 
 .header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(580px, 58vw);
+  min-height: 34px;
+  overflow: hidden;
+  white-space: nowrap;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   padding: 8px 10px;
   background: #ffffff;
+}
+
+.header-status-divider {
+  width: 1px;
+  height: 14px;
+  flex: 0 0 auto;
+  background: #cbd5e1;
+}
+
+.auth-indicator {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #16a34a;
+  box-shadow: 0 0 0 3px #dcfce7;
+}
+
+.header-user {
+  min-width: 0;
+  max-width: 20ch;
+  overflow: hidden;
+  color: #0f172a;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  text-transform: none;
 }
 
 .error-banner {
@@ -687,6 +727,14 @@ tbody tr.selected {
   .app-header {
     align-items: start;
     flex-direction: column;
+  }
+
+  .header-status {
+    max-width: 100%;
+  }
+
+  .header-user {
+    max-width: 14ch;
   }
 
   .metric-grid,

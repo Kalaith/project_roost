@@ -47,7 +47,7 @@ final class ProjectDiscoveryService
                 return $sourceCompare;
             }
 
-            return strcmp((string)$a['name'], (string)$b['name']);
+            return strcmp((string)$a['display_name'], (string)$b['display_name']);
         });
 
         return $candidates;
@@ -125,10 +125,12 @@ final class ProjectDiscoveryService
         $slug = $this->slug($entry);
         $package = $this->packageManifest($path);
         $category = $slug === 'app_template' || str_contains($slug, 'template') ? 'template' : 'app';
+        $displayName = $this->projectName($path, $package['name'] ?? null, $slug);
 
         return $this->candidate([
             'source' => 'apps',
-            'name' => $this->projectName($path, $package['name'] ?? null, $slug),
+            'name' => $slug,
+            'display_name' => $displayName,
             'slug' => $slug,
             'category' => $category,
             'stage' => $this->appStage($path),
@@ -150,10 +152,12 @@ final class ProjectDiscoveryService
     {
         $slug = $this->slug($entry);
         $package = $this->packageManifest($path);
+        $displayName = $this->projectName($path, $package['name'] ?? null, $slug);
 
         return $this->candidate([
             'source' => 'games',
-            'name' => $this->projectName($path, $package['name'] ?? null, $slug),
+            'name' => $slug,
+            'display_name' => $displayName,
             'slug' => $slug,
             'category' => 'game',
             'stage' => 'Game',
@@ -188,7 +192,8 @@ final class ProjectDiscoveryService
 
         return $this->candidate([
             'source' => 'rust-games',
-            'name' => $displayName,
+            'name' => 'rust_' . $directorySlug,
+            'display_name' => $displayName,
             'slug' => 'rust_' . $directorySlug,
             'category' => 'rust-game',
             'stage' => 'Rust',
@@ -211,12 +216,13 @@ final class ProjectDiscoveryService
     {
         $summary = trim((string)($data['summary'] ?? ''));
         if ($summary === '') {
-            $summary = (string)$data['name'] . ' in the WebHatchery ' . (string)$data['source'] . ' workspace.';
+            $summary = (string)$data['display_name'] . ' in the WebHatchery ' . (string)$data['source'] . ' workspace.';
         }
 
         return [
             'source' => $data['source'],
             'name' => $data['name'],
+            'display_name' => $data['display_name'],
             'slug' => $data['slug'],
             'category' => $data['category'],
             'status' => 'Concept',
@@ -249,6 +255,7 @@ final class ProjectDiscoveryService
         foreach ($projects as $project) {
             $slug = $this->slug((string)($project['slug'] ?? ''));
             $name = $this->slug((string)($project['name'] ?? ''));
+            $displayName = $this->slug((string)($project['display_name'] ?? ''));
             $path = $this->normalizePath((string)($project['repo_path'] ?? ''));
 
             if ($slug !== '') {
@@ -259,6 +266,9 @@ final class ProjectDiscoveryService
             }
             if ($name !== '') {
                 $keys['name:' . $name] = true;
+            }
+            if ($displayName !== '') {
+                $keys['display_name:' . $displayName] = true;
             }
             if ($path !== '') {
                 $keys['path:' . $path] = true;
@@ -276,10 +286,12 @@ final class ProjectDiscoveryService
     {
         $slug = $this->slug((string)$candidate['slug']);
         $name = $this->slug((string)$candidate['name']);
+        $displayName = $this->slug((string)$candidate['display_name']);
         $path = $this->normalizePath((string)$candidate['repo_path']);
 
         return isset($existingKeys['slug:' . $slug])
             || isset($existingKeys['name:' . $name])
+            || isset($existingKeys['display_name:' . $displayName])
             || isset($existingKeys['path:' . $path]);
     }
 
@@ -290,6 +302,7 @@ final class ProjectDiscoveryService
     {
         $haystack = strtolower(implode(' ', [
             $candidate['name'] ?? '',
+            $candidate['display_name'] ?? '',
             $candidate['slug'] ?? '',
             $candidate['source'] ?? '',
             $candidate['category'] ?? '',

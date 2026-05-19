@@ -12,6 +12,7 @@ const project: Project = {
   id: 1,
   slug: "project_roost",
   name: "Project Roost",
+  display_name: "Project Roost",
   category: "app",
   status: "watch",
   stage: "prototype",

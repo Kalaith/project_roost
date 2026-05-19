@@ -81,8 +81,9 @@ foreach ($batches as $batch) {
         );
         $sql[] = sprintf('SET @project_id := (SELECT `id` FROM `projects` WHERE `path` = %s OR `title` = %s ORDER BY `id` ASC LIMIT 1);', q($project['path']), q($project['title']));
         $sql[] = sprintf(
-            'INSERT INTO `project_roost_profiles` (`project_id`, `slug`, `category`, `shape`, `summary`, `preview_url`, `production_url`, `source`, `created_at`, `updated_at`) VALUES (@project_id, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW()) ON DUPLICATE KEY UPDATE `category` = VALUES(`category`), `shape` = VALUES(`shape`), `summary` = VALUES(`summary`), `preview_url` = VALUES(`preview_url`), `production_url` = VALUES(`production_url`), `source` = VALUES(`source`), `updated_at` = NOW();',
+            'INSERT INTO `project_roost_profiles` (`project_id`, `slug`, `display_name`, `category`, `shape`, `summary`, `preview_url`, `production_url`, `source`, `created_at`, `updated_at`) VALUES (@project_id, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW()) ON DUPLICATE KEY UPDATE `display_name` = VALUES(`display_name`), `category` = VALUES(`category`), `shape` = VALUES(`shape`), `summary` = VALUES(`summary`), `preview_url` = VALUES(`preview_url`), `production_url` = VALUES(`production_url`), `source` = VALUES(`source`), `updated_at` = NOW();',
             q($profile['slug']),
+            q($profile['display_name'] ?? $project['title']),
             q($profile['category']),
             q($profile['shape']),
             q($profile['summary']),

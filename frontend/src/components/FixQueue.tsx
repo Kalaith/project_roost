@@ -20,7 +20,11 @@ export const FixQueue: React.FC<FixQueueProps> = ({
         <article key={task.id} className="task-item">
           <div>
             <strong>{task.title}</strong>
-            <span>{task.project?.name ?? `Project ${task.project_id}`}</span>
+            <span>
+              {task.project?.display_name ??
+                task.project?.name ??
+                `Project ${task.project_id}`}
+            </span>
           </div>
           <p>{task.description}</p>
           <div className="task-meta">

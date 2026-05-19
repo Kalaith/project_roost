@@ -1,6 +1,11 @@
 export interface User {
-  id: number;
-  email: string;
+  id: number | string;
+  email?: string;
+  username?: string;
+  display_name?: string;
+  role?: string;
+  is_guest?: boolean;
+  auth_type?: "frontpage" | "guest";
 }
 
 export interface HealthResponse {
@@ -43,6 +48,7 @@ export interface Project {
   id: number;
   slug: string;
   name: string;
+  display_name: string;
   category: string;
   status: string;
   stage: string;
@@ -80,6 +86,7 @@ export interface ProjectTask {
     id: number;
     slug: string;
     name: string;
+    display_name?: string;
     category: string;
   };
   risk_severity?: string;
@@ -132,6 +139,7 @@ export interface ProjectFilters {
 
 export interface ProjectUpdatePayload {
   name?: string;
+  display_name?: string | null;
   slug?: string;
   status?: string;
   stage?: string;
@@ -154,10 +162,14 @@ export interface ProjectUpdatePayload {
 export type ProjectCreatePayload = Required<
   Pick<ProjectUpdatePayload, "name" | "status" | "stage" | "category" | "shape">
 > &
-  Omit<ProjectUpdatePayload, "name" | "status" | "stage" | "category" | "shape">;
+  Omit<
+    ProjectUpdatePayload,
+    "name" | "status" | "stage" | "category" | "shape"
+  >;
 
 export interface ProjectDiscoveryCandidate extends ProjectCreatePayload {
   source: string;
+  display_name: string;
   confidence: number;
 }
 

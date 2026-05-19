@@ -86,7 +86,7 @@ final class SummaryImportService
             }
 
             $slug = $this->slug((string) $nameMatch[1]);
-            $displayName = trim((string) $nameMatch[1]);
+            $displayName = $this->displayNameForSlug($slug, trim((string) $nameMatch[1]));
             $shortDescription = $this->cleanText((string) ($nameMatch[2] ?? ''));
 
             preg_match_all('/<span\s+class="score[^"]*"[^>]*>(.*?)<\/span>/is', $rowHtml, $scoreMatches);
@@ -103,7 +103,7 @@ final class SummaryImportService
 
             $records[] = [
                 'project' => [
-                    'title' => $displayName,
+                    'title' => $slug,
                     'path' => 'H:\\WebHatchery\\apps\\' . $slug,
                     'description' => $summary,
                     'stage' => $this->stageFromStatus($reportStatus),
@@ -117,6 +117,7 @@ final class SummaryImportService
                 ],
                 'profile' => [
                     'slug' => $slug,
+                    'display_name' => $displayName,
                     'category' => $category,
                     'shape' => $this->shapeFromBackend($backendShape),
                     'summary' => $summary,
@@ -190,7 +191,7 @@ final class SummaryImportService
 
             $records[] = [
                 'project' => [
-                    'title' => $displayName,
+                    'title' => $slug,
                     'path' => 'H:\\WebHatchery\\game_apps\\' . $slug,
                     'description' => $summary,
                     'stage' => $status === 'MVP' ? 'mvp' : 'prototype',
@@ -204,6 +205,7 @@ final class SummaryImportService
                 ],
                 'profile' => [
                     'slug' => $slug,
+                    'display_name' => $displayName,
                     'category' => 'game',
                     'shape' => strtolower((string) ($item['shape'] ?? 'unknown')),
                     'summary' => $summary,
@@ -349,7 +351,7 @@ final class SummaryImportService
 
         return [
             'project' => [
-                'title' => $displayName,
+                'title' => $slug,
                 'path' => $path,
                 'description' => $summary,
                 'stage' => $status === 'MVP' ? 'mvp' : 'prototype',
@@ -363,6 +365,7 @@ final class SummaryImportService
             ],
             'profile' => [
                 'slug' => $slug,
+                'display_name' => $displayName,
                 'category' => 'rust-game',
                 'shape' => $hasServerComponent ? 'rust+webgl+server' : 'rust+webgl',
                 'summary' => $summary,
@@ -620,6 +623,25 @@ final class SummaryImportService
     private function titleFromSlug(string $slug): string
     {
         return ucwords(str_replace('_', ' ', $slug));
+    }
+
+    private function displayNameForSlug(string $slug, string $fallback): string
+    {
+        $knownDisplayNames = [
+            'adventcon' => 'Adventure Story Generator',
+        ];
+
+        $displayName = trim($knownDisplayNames[$slug] ?? '');
+        if ($displayName !== '') {
+            return $displayName;
+        }
+
+        $displayName = trim($fallback);
+        if ($displayName === '' || $this->slug($displayName) === $slug) {
+            return $this->titleFromSlug($slug);
+        }
+
+        return $displayName;
     }
 
     private function shapeFromBackend(string $backendShape): string

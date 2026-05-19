@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS `project_roost_profiles` (
   `project_id` bigint unsigned NOT NULL,
   `slug` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `display_name` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `category` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `shape` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `summary` text COLLATE utf8mb4_unicode_ci,

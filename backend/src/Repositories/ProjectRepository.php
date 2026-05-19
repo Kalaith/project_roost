@@ -303,6 +303,7 @@ final class ProjectRepository
                 t.*,
                 p.title AS project_title,
                 pr.slug AS project_slug,
+                pr.display_name AS project_display_name,
                 pr.category AS project_category,
                 risk.severity AS risk_severity,
                 latest.overall_score
@@ -328,6 +329,7 @@ final class ProjectRepository
                 'id' => (int) $row['project_id'],
                 'slug' => (string) $row['project_slug'],
                 'name' => (string) $row['project_title'],
+                'display_name' => $this->displayName((string) ($row['project_display_name'] ?? ''), (string) $row['project_title']),
                 'category' => (string) $row['project_category'],
             ];
             $task['risk_severity'] = (string) ($row['risk_severity'] ?? 'low');
@@ -360,6 +362,7 @@ final class ProjectRepository
                 p.created_at AS project_created_at,
                 p.updated_at AS project_updated_at,
                 pr.slug,
+                pr.display_name,
                 pr.category,
                 pr.shape,
                 pr.summary,
@@ -403,6 +406,7 @@ final class ProjectRepository
             'id' => (int) $row['project_id'],
             'slug' => (string) $row['slug'],
             'name' => (string) $row['title'],
+            'display_name' => $this->displayName((string) ($row['display_name'] ?? ''), (string) $row['title']),
             'category' => (string) $row['category'],
             'status' => $this->normalizeProjectStatus((string) $row['status']),
             'stage' => (string) $row['stage'],
@@ -502,6 +506,7 @@ final class ProjectRepository
             if ($search !== '') {
                 $haystack = strtolower(implode(' ', [
                     $project['name'],
+                    $project['display_name'],
                     $project['slug'],
                     $project['summary'],
                     $project['latest_review']['notes'] ?? '',
@@ -544,7 +549,7 @@ final class ProjectRepository
             return match ($sort) {
                 'highest_risk' => $this->riskRank($b['risk']['severity']) <=> $this->riskRank($a['risk']['severity']),
                 'recently_reviewed' => strcmp((string) ($b['latest_review']['reviewed_at'] ?? ''), (string) ($a['latest_review']['reviewed_at'] ?? '')),
-                'name' => strcmp($a['name'], $b['name']),
+                'name' => strcmp((string) ($a['display_name'] ?? $a['name']), (string) ($b['display_name'] ?? $b['name'])),
                 default => ($a['latest_review']['overall_score'] ?? 99) <=> ($b['latest_review']['overall_score'] ?? 99),
             };
         });
@@ -649,6 +654,7 @@ final class ProjectRepository
         $data = [
             'project_id' => $projectId,
             'slug' => trim((string) $profile['slug']),
+            'display_name' => trim((string) ($profile['display_name'] ?? '')) ?: null,
             'category' => trim((string) $profile['category']),
             'shape' => trim((string) $profile['shape']),
             'summary' => $profile['summary'] ?? null,
@@ -661,11 +667,12 @@ final class ProjectRepository
 
         $sql = '
             INSERT INTO ' . $this->q(self::PROFILES_TABLE) . '
-                (project_id, slug, category, shape, summary, preview_url, production_url, source, created_at, updated_at)
+                (project_id, slug, display_name, category, shape, summary, preview_url, production_url, source, created_at, updated_at)
             VALUES
-                (:project_id, :slug, :category, :shape, :summary, :preview_url, :production_url, :source, :created_at, :updated_at)
+                (:project_id, :slug, :display_name, :category, :shape, :summary, :preview_url, :production_url, :source, :created_at, :updated_at)
             ON DUPLICATE KEY UPDATE
                 slug = VALUES(slug),
+                display_name = VALUES(display_name),
                 category = VALUES(category),
                 shape = VALUES(shape),
                 summary = VALUES(summary),
@@ -809,6 +816,10 @@ final class ProjectRepository
         }
 
         $slug = $this->slug((string) ($payload['slug'] ?? $name));
+        $displayName = trim((string) ($payload['display_name'] ?? $name));
+        if ($displayName === '') {
+            $displayName = $name;
+        }
         $summary = trim((string) ($payload['summary'] ?? $payload['description'] ?? ''));
         $category = trim((string) ($payload['category'] ?? 'app'));
         $groupName = trim((string) ($payload['group_name'] ?? $this->groupNameForCategory($category)));
@@ -829,6 +840,7 @@ final class ProjectRepository
             ],
             'profile' => [
                 'slug' => $slug,
+                'display_name' => $displayName,
                 'category' => $category,
                 'shape' => trim((string) ($payload['shape'] ?? 'frontend+backend')),
                 'summary' => $summary,
@@ -872,9 +884,13 @@ final class ProjectRepository
     private function profileUpdates(array $payload): array
     {
         $updates = [];
-        foreach (['slug', 'category', 'shape', 'summary', 'preview_url', 'production_url'] as $field) {
+        foreach (['slug', 'display_name', 'category', 'shape', 'summary', 'preview_url', 'production_url'] as $field) {
             if (array_key_exists($field, $payload)) {
-                $updates[$field] = $field === 'slug' ? $this->slug((string) $payload[$field]) : $payload[$field];
+                $updates[$field] = match ($field) {
+                    'slug' => $this->slug((string) $payload[$field]),
+                    'display_name' => trim((string) $payload[$field]) ?: null,
+                    default => $payload[$field],
+                };
             }
         }
 
@@ -1079,6 +1095,13 @@ final class ProjectRepository
             'template' => 'templates',
             default => $category !== '' ? $category : 'other',
         };
+    }
+
+    private function displayName(string $displayName, string $name): string
+    {
+        $displayName = trim($displayName);
+
+        return $displayName !== '' ? $displayName : $name;
     }
 
     private function priorityScore(array $task): int

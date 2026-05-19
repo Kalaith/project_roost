@@ -18,6 +18,7 @@ import { ImportPanel } from "../components/ImportPanel";
 import { ProjectCreatePanel } from "../components/ProjectCreatePanel";
 import { ProjectDetail } from "../components/ProjectDetail";
 import { ProjectTable } from "../components/ProjectTable";
+import { useAuthStore } from "../stores/useAuthStore";
 import { useProjectFilters } from "../stores/useProjectFilters";
 import type {
   DashboardSummary,
@@ -28,6 +29,7 @@ import type {
   ProjectDiscoveryCandidate,
   ProjectTask,
   ProjectUpdatePayload,
+  User,
 } from "../types";
 
 interface ApiErrorLike {
@@ -55,8 +57,22 @@ const errorMessage = (error: unknown): string => {
   return error instanceof Error ? error.message : "Request failed.";
 };
 
+const getUserLabel = (user: User | null): string => {
+  if (!user) {
+    return "";
+  }
+
+  return (
+    user.username?.trim() ||
+    user.display_name?.trim() ||
+    user.email?.trim() ||
+    `User ${user.id}`
+  );
+};
+
 export const HomePage: React.FC = () => {
   const { filters, setFilter, resetFilters } = useProjectFilters();
+  const authUser = useAuthStore((state) => state.user);
   const [projects, setProjects] = useState<Project[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
@@ -79,6 +95,7 @@ export const HomePage: React.FC = () => {
   const [error, setError] = useState("");
   const [importMessage, setImportMessage] = useState("");
   const [discoveryMessage, setDiscoveryMessage] = useState("");
+  const authUserLabel = getUserLabel(authUser);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -261,7 +278,22 @@ export const HomePage: React.FC = () => {
           <span className="eyebrow">WebHatchery</span>
           <h1>Project Roost</h1>
         </div>
-        <div className="header-status">{loading ? "Loading" : "Ready"}</div>
+        <div
+          className="header-status"
+          title={authUserLabel ? `Signed in as ${authUserLabel}` : undefined}
+        >
+          <span>{loading ? "Loading" : "Ready"}</span>
+          {authUserLabel ? (
+            <>
+              <span className="header-status-divider" aria-hidden="true" />
+              <span className="auth-indicator">
+                <span className="auth-dot" aria-hidden="true" />
+                <span className="auth-label">Signed in</span>
+                <strong className="header-user">{authUserLabel}</strong>
+              </span>
+            </>
+          ) : null}
+        </div>
       </header>
 
       {error ? <div className="error-banner">{error}</div> : null}

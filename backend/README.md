@@ -11,7 +11,7 @@ PHP API for Project Roost. It stores canonical project rows in the shared `proje
 - `DB_HOST`
 - `DB_PORT`
 - `DB_NAME`
-- `DB_USERNAME`
+- `DB_USER`
 - `DB_PASSWORD`
 - `PROJECTS_TABLE`
 - `JWT_SECRET`

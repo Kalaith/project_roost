@@ -38,6 +38,11 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
           <tbody>
             {projects.map((project) => {
               const siteUrl = siteUrlFor(project, siteEnvironment);
+              const displayName = project.display_name || project.name;
+              const projectIdentifier =
+                project.name === project.slug
+                  ? project.name
+                  : `${project.name} / ${project.slug}`;
 
               return (
                 <tr
@@ -51,8 +56,8 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
                       className="row-button"
                       onClick={() => onSelect(project)}
                     >
-                      <strong>{project.name}</strong>
-                      <span>{project.slug}</span>
+                      <strong>{displayName}</strong>
+                      <span>{projectIdentifier}</span>
                     </button>
                   </td>
                   <td>{project.category}</td>
@@ -86,7 +91,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
                       href={siteUrl}
                       target="_blank"
                       rel="noreferrer"
-                      aria-label={`Open ${project.name} site`}
+                      aria-label={`Open ${displayName} site`}
                       onClick={(event) => event.stopPropagation()}
                     >
                       Site

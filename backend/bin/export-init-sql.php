@@ -22,6 +22,7 @@ $outputPath = $argv[1] ?? ($databaseDir . DIRECTORY_SEPARATOR . 'project_roost_i
 $parts = [
     $databaseDir . DIRECTORY_SEPARATOR . '001_create_project_roost_tables.sql',
     $databaseDir . DIRECTORY_SEPARATOR . '002_create_project_roost_deployments.sql',
+    $databaseDir . DIRECTORY_SEPARATOR . '003_add_project_roost_display_name.sql',
     $seedPath,
 ];
 

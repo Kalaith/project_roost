@@ -20,7 +20,7 @@ final class Database
         $host = Env::required('DB_HOST');
         $port = Env::requiredInt('DB_PORT');
         $database = Env::required('DB_NAME');
-        $username = Env::required('DB_USERNAME');
+        $username = Env::required('DB_USER');
         $password = Env::required('DB_PASSWORD');
 
         $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $host, $port, $database);

@@ -29,6 +29,7 @@ interface ProjectDetailProps {
 
 interface DetailForm {
   name: string;
+  display_name: string;
   status: string;
   stage: string;
   category: string;
@@ -46,6 +47,7 @@ interface DetailForm {
 
 const emptyForm: DetailForm = {
   name: "",
+  display_name: "",
   status: "",
   stage: "",
   category: "",
@@ -79,6 +81,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
     setForm({
       name: project.name,
+      display_name: project.display_name,
       status: project.status,
       stage: project.stage,
       category: project.category,
@@ -113,6 +116,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const save = async () => {
     await onSave(project.id, {
       name: form.name,
+      display_name: form.display_name.trim() || null,
       status: form.status,
       stage: form.stage,
       category: form.category,
@@ -123,7 +127,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       production_url: form.production_url.trim() || null,
       version: form.version.trim() || "0.1.0",
       group_name: groupNameForCategory(form.category),
-      repository_type: form.repository_url.trim() ? "git" : project.repository_type,
+      repository_type: form.repository_url.trim()
+        ? "git"
+        : project.repository_type,
       repository_url: form.repository_url.trim() || null,
       show_on_homepage: form.show_on_homepage,
       hidden: form.hidden,
@@ -137,6 +143,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const activeSiteUrl = siteUrlFor(project, siteEnvironment);
   const previewSiteUrl = siteUrlFor(project, "preview");
   const productionSiteUrl = siteUrlFor(project, "production");
+  const displayName = project.display_name || project.name;
   const repositoryUrl = project.repository_url?.trim() ?? "";
   const repositoryLabel = repositoryUrl.toLowerCase().includes("github.com")
     ? "GitHub"
@@ -152,7 +159,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   return (
     <section className="panel detail-panel" aria-label="Project detail">
       <div className="panel-header">
-        <h2>{project.name}</h2>
+        <h2>{displayName}</h2>
         <span className={riskClass(project.risk.severity)}>
           {project.risk.severity}
         </span>
@@ -179,6 +186,15 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           <input
             value={form.name}
             onChange={(event) => updateField("name", event.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>Display Name</span>
+          <input
+            value={form.display_name}
+            onChange={(event) =>
+              updateField("display_name", event.target.value)
+            }
           />
         </label>
         <label className="field">
@@ -356,7 +372,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               href={repositoryUrl}
               target="_blank"
               rel="noreferrer"
-              aria-label={`Open ${project.name} ${repositoryLabel}`}
+              aria-label={`Open ${displayName} ${repositoryLabel}`}
             >
               <span>{repositoryLabel}</span>
               <strong>{repositoryUrl}</strong>

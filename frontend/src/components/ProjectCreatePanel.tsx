@@ -20,6 +20,7 @@ interface ProjectCreatePanelProps {
 
 interface CreateForm {
   name: string;
+  display_name: string;
   slug: string;
   status: string;
   stage: string;
@@ -37,6 +38,7 @@ interface CreateForm {
 
 const emptyForm: CreateForm = {
   name: "",
+  display_name: "",
   slug: "",
   status: "Concept",
   stage: "React",
@@ -101,6 +103,7 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
 
     const payload: ProjectCreatePayload = {
       name: form.name.trim(),
+      display_name: form.display_name.trim() || form.name.trim(),
       slug: form.slug.trim() || undefined,
       status: form.status,
       stage: form.stage,
@@ -129,6 +132,7 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
   const applyDiscovery = (candidate: ProjectDiscoveryCandidate) => {
     setForm({
       name: candidate.name,
+      display_name: candidate.display_name,
       slug: candidate.slug ?? "",
       status: candidate.status,
       stage: candidate.stage,
@@ -207,15 +211,13 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
               className="discovery-item"
             >
               <div>
-                <strong>{candidate.name}</strong>
+                <strong>{candidate.display_name || candidate.name}</strong>
                 <span>
-                  {candidate.source} / {candidate.category} /{" "}
+                  {candidate.name} / {candidate.source} / {candidate.category} /{" "}
                   {candidate.production_url}
                 </span>
               </div>
-              <span className="confidence-pill">
-                {candidate.confidence}%
-              </span>
+              <span className="confidence-pill">{candidate.confidence}%</span>
               <button
                 type="button"
                 className="button secondary"
@@ -237,6 +239,15 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
                 value={form.name}
                 onChange={(event) => updateField("name", event.target.value)}
                 required
+              />
+            </label>
+            <label className="field">
+              <span>Display Name</span>
+              <input
+                value={form.display_name}
+                onChange={(event) =>
+                  updateField("display_name", event.target.value)
+                }
               />
             </label>
             <label className="field">
@@ -317,9 +328,7 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
               <span>Version</span>
               <input
                 value={form.version}
-                onChange={(event) =>
-                  updateField("version", event.target.value)
-                }
+                onChange={(event) => updateField("version", event.target.value)}
               />
             </label>
             <label className="field checkbox-field">
