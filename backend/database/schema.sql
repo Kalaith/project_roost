@@ -1,0 +1,1 @@
+-- Run the ordered SQL files in this folder after the shared projects table exists.

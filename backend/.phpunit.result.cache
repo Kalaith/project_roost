@@ -1,0 +1,1 @@
+{"version":2,"defects":[],"times":{"Tests\\SmokeTest::testTemplateBackendLoads":0.004,"Tests\\SmokeTest::testRustGamesImportParsesInventoryPayload":0.003,"Tests\\SmokeTest::testDiscoveryMapsRustGamesToGamesSubfolder":0.007}}

@@ -1,0 +1,25 @@
+CREATE TABLE IF NOT EXISTS `project_roost_deployments` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `project_id` bigint unsigned DEFAULT NULL,
+  `project_slug` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `environment` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target_type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `frontend_deployed` tinyint(1) NOT NULL DEFAULT '0',
+  `backend_deployed` tinyint(1) NOT NULL DEFAULT '0',
+  `destination_path` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `remote_path` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `source_path` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `publish_mode` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `git_commit` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `actor` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `notes` text COLLATE utf8mb4_unicode_ci,
+  `deployed_at` datetime NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `project_roost_deployments_project_environment_index` (`project_slug`, `environment`),
+  KEY `project_roost_deployments_deployed_at_index` (`deployed_at`),
+  KEY `project_roost_deployments_project_id_fk` (`project_id`),
+  CONSTRAINT `project_roost_deployments_project_id_fk`
+    FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
