@@ -2,8 +2,6 @@ import type {
   ApiEnvelope,
   DashboardSummary,
   DeploymentHistory,
-  ImportResult,
-  ImportSource,
   Project,
   ProjectCreatePayload,
   ProjectDiscoveryCandidate,
@@ -114,17 +112,4 @@ export const updateTask = async (
   );
 
   return unwrap(response.data).task;
-};
-
-export const importHtmlSummary = async (
-  source: ImportSource,
-): Promise<ImportResult> => {
-  const response = await api.post<ApiEnvelope<{ import: ImportResult }>>(
-    "/import/html-summary",
-    {
-      source,
-    },
-  );
-
-  return unwrap(response.data).import;
 };

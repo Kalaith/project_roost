@@ -5,7 +5,6 @@ import {
   getProjectDeployments,
   createProject,
   discoverProjects,
-  importHtmlSummary,
   listProjects,
   updateProject,
   updateTask,
@@ -14,7 +13,6 @@ import { DashboardCards } from "../components/DashboardCards";
 import { DeploymentPanel } from "../components/DeploymentPanel";
 import { FiltersBar } from "../components/FiltersBar";
 import { FixQueue } from "../components/FixQueue";
-import { ImportPanel } from "../components/ImportPanel";
 import { ProjectCreatePanel } from "../components/ProjectCreatePanel";
 import { ProjectDetail } from "../components/ProjectDetail";
 import { ProjectTable } from "../components/ProjectTable";
@@ -23,7 +21,6 @@ import { useProjectFilters } from "../stores/useProjectFilters";
 import type {
   DashboardSummary,
   DeploymentRecord,
-  ImportSource,
   Project,
   ProjectCreatePayload,
   ProjectDiscoveryCandidate,
@@ -91,9 +88,7 @@ export const HomePage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [discovering, setDiscovering] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
-  const [importMessage, setImportMessage] = useState("");
   const [discoveryMessage, setDiscoveryMessage] = useState("");
   const authUserLabel = getUserLabel(authUser);
 
@@ -238,24 +233,6 @@ export const HomePage: React.FC = () => {
     }
   };
 
-  const importSource = async (source: ImportSource) => {
-    setImporting(true);
-    setImportMessage("");
-    setError("");
-
-    try {
-      const result = await importHtmlSummary(source);
-      setImportMessage(
-        `${result.project_count} projects, ${result.review_count} reviews, ${result.task_count} tasks imported.`,
-      );
-      await loadData();
-    } catch (caught) {
-      setError(errorMessage(caught));
-    } finally {
-      setImporting(false);
-    }
-  };
-
   const changeTaskStatus = async (id: number, status: string) => {
     setError("");
 
@@ -334,11 +311,6 @@ export const HomePage: React.FC = () => {
       <div className="lower-grid">
         <FixQueue tasks={tasks} onTaskStatusChange={changeTaskStatus} />
         <DeploymentPanel deployments={summary?.deployments} />
-        <ImportPanel
-          importing={importing}
-          message={importMessage}
-          onImport={importSource}
-        />
       </div>
     </main>
   );

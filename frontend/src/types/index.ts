@@ -172,13 +172,3 @@ export interface ProjectDiscoveryCandidate extends ProjectCreatePayload {
   display_name: string;
   confidence: number;
 }
-
-export type ImportSource = "apps" | "games" | "rust-games";
-
-export interface ImportResult {
-  source: string;
-  source_hash: string;
-  project_count: number;
-  review_count: number;
-  task_count: number;
-}

@@ -218,7 +218,6 @@ a {
 }
 
 .toolbar-actions,
-.import-actions,
 .score-strip,
 .task-meta {
   display: flex;
@@ -260,10 +259,7 @@ a {
 
 .lower-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr) minmax(
-      280px,
-      0.75fr
-    );
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
   gap: 12px;
   margin-top: 12px;
 }
@@ -636,10 +632,6 @@ tbody tr.selected {
   max-width: 138px;
   min-height: 34px;
   padding: 6px 8px;
-}
-
-.import-panel {
-  align-self: start;
 }
 
 .create-panel {
