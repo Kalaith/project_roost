@@ -19,12 +19,18 @@ if (!is_file($seedPath)) {
 }
 
 $outputPath = $argv[1] ?? ($databaseDir . DIRECTORY_SEPARATOR . 'project_roost_init.sql');
-$parts = [
-    $databaseDir . DIRECTORY_SEPARATOR . '001_create_project_roost_tables.sql',
-    $databaseDir . DIRECTORY_SEPARATOR . '002_create_project_roost_deployments.sql',
-    $databaseDir . DIRECTORY_SEPARATOR . '003_add_project_roost_display_name.sql',
-    $seedPath,
-];
+$migrations = array_values(array_filter(
+    glob($databaseDir . DIRECTORY_SEPARATOR . '*.sql') ?: [],
+    fn (string $path): bool => preg_match('/^\d+_.*\.sql$/', basename($path)) === 1
+));
+sort($migrations);
+
+$postSeedParts = array_values(array_filter(
+    $migrations,
+    fn (string $path): bool => str_contains(basename($path), '_clean_')
+));
+
+$parts = array_merge($migrations, [$seedPath], $postSeedParts);
 
 $sql = [];
 $sql[] = '-- Project Roost full SQL initializer.';

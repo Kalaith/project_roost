@@ -634,8 +634,14 @@ tbody tr.selected {
   padding: 6px 8px;
 }
 
+.create-launcher,
 .create-panel {
   margin-bottom: 12px;
+}
+
+.create-launcher {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .create-project-form {

@@ -62,7 +62,7 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
   onCreate,
   onDiscover,
 }) => {
-  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState<CreateForm>(emptyForm);
   const [discoverySearch, setDiscoverySearch] = useState("");
   const [discoverySource, setDiscoverySource] = useState("all");
@@ -126,7 +126,7 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
 
     await onCreate(payload);
     setForm(emptyForm);
-    setOpen(false);
+    setExpanded(false);
   };
 
   const applyDiscovery = (candidate: ProjectDiscoveryCandidate) => {
@@ -147,8 +147,21 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
       risk_severity: candidate.risk?.severity ?? "low",
       show_on_homepage: candidate.show_on_homepage ?? true,
     });
-    setOpen(true);
   };
+
+  if (!expanded) {
+    return (
+      <div className="create-launcher" aria-label="Project creation">
+        <button
+          type="button"
+          className="button secondary"
+          onClick={() => setExpanded(true)}
+        >
+          Add Project
+        </button>
+      </div>
+    );
+  }
 
   return (
     <section className="panel create-panel" aria-label="Create project">
@@ -157,9 +170,9 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
         <button
           type="button"
           className="button secondary"
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => setExpanded(false)}
         >
-          {open ? "Close" : "New Project"}
+          Close
         </button>
       </div>
 
@@ -230,176 +243,172 @@ export const ProjectCreatePanel: React.FC<ProjectCreatePanelProps> = ({
         </div>
       ) : null}
 
-      {open ? (
-        <form className="create-project-form" onSubmit={submit}>
-          <div className="detail-grid">
-            <label className="field">
-              <span>Name</span>
-              <input
-                value={form.name}
-                onChange={(event) => updateField("name", event.target.value)}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>Display Name</span>
-              <input
-                value={form.display_name}
-                onChange={(event) =>
-                  updateField("display_name", event.target.value)
-                }
-              />
-            </label>
-            <label className="field">
-              <span>Slug</span>
-              <input
-                value={form.slug}
-                onChange={(event) => updateField("slug", event.target.value)}
-              />
-            </label>
-            <label className="field">
-              <span>Category</span>
-              <select
-                value={form.category}
-                onChange={(event) => changeCategory(event.target.value)}
-              >
-                {PROJECT_CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Status</span>
-              <select
-                value={form.status}
-                onChange={(event) => updateField("status", event.target.value)}
-              >
-                {PROJECT_STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Stage</span>
-              <select
-                value={form.stage}
-                onChange={(event) => updateField("stage", event.target.value)}
-              >
-                {PROJECT_STAGE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Shape</span>
-              <select
-                value={form.shape}
-                onChange={(event) => updateField("shape", event.target.value)}
-              >
-                {PROJECT_SHAPE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Risk</span>
-              <select
-                value={form.risk_severity}
-                onChange={(event) =>
-                  updateField("risk_severity", event.target.value)
-                }
-              >
-                {RISK_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Version</span>
-              <input
-                value={form.version}
-                onChange={(event) => updateField("version", event.target.value)}
-              />
-            </label>
-            <label className="field checkbox-field">
-              <input
-                type="checkbox"
-                checked={form.show_on_homepage}
-                onChange={(event) =>
-                  updateField("show_on_homepage", event.target.checked)
-                }
-              />
-              <span>Show on Frontpage</span>
-            </label>
-          </div>
-
-          <label className="field full-field">
-            <span>Summary</span>
-            <textarea
-              value={form.summary}
-              onChange={(event) => updateField("summary", event.target.value)}
-              rows={4}
+      <form className="create-project-form" onSubmit={submit}>
+        <div className="detail-grid">
+          <label className="field">
+            <span>Name</span>
+            <input
+              value={form.name}
+              onChange={(event) => updateField("name", event.target.value)}
+              required
             />
           </label>
+          <label className="field">
+            <span>Display Name</span>
+            <input
+              value={form.display_name}
+              onChange={(event) =>
+                updateField("display_name", event.target.value)
+              }
+            />
+          </label>
+          <label className="field">
+            <span>Slug</span>
+            <input
+              value={form.slug}
+              onChange={(event) => updateField("slug", event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>Category</span>
+            <select
+              value={form.category}
+              onChange={(event) => changeCategory(event.target.value)}
+            >
+              {PROJECT_CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Status</span>
+            <select
+              value={form.status}
+              onChange={(event) => updateField("status", event.target.value)}
+            >
+              {PROJECT_STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Stage</span>
+            <select
+              value={form.stage}
+              onChange={(event) => updateField("stage", event.target.value)}
+            >
+              {PROJECT_STAGE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Shape</span>
+            <select
+              value={form.shape}
+              onChange={(event) => updateField("shape", event.target.value)}
+            >
+              {PROJECT_SHAPE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Risk</span>
+            <select
+              value={form.risk_severity}
+              onChange={(event) =>
+                updateField("risk_severity", event.target.value)
+              }
+            >
+              {RISK_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Version</span>
+            <input
+              value={form.version}
+              onChange={(event) => updateField("version", event.target.value)}
+            />
+          </label>
+          <label className="field checkbox-field">
+            <input
+              type="checkbox"
+              checked={form.show_on_homepage}
+              onChange={(event) =>
+                updateField("show_on_homepage", event.target.checked)
+              }
+            />
+            <span>Show on Frontpage</span>
+          </label>
+        </div>
 
-          <div className="detail-grid full-field">
-            <label className="field">
-              <span>Repository Path</span>
-              <input
-                value={form.repo_path}
-                onChange={(event) =>
-                  updateField("repo_path", event.target.value)
-                }
-              />
-            </label>
-            <label className="field">
-              <span>Repository URL</span>
-              <input
-                value={form.repository_url}
-                onChange={(event) =>
-                  updateField("repository_url", event.target.value)
-                }
-              />
-            </label>
-            <label className="field">
-              <span>Preview URL</span>
-              <input
-                value={form.preview_url}
-                onChange={(event) =>
-                  updateField("preview_url", event.target.value)
-                }
-              />
-            </label>
-            <label className="field">
-              <span>Production URL</span>
-              <input
-                value={form.production_url}
-                onChange={(event) =>
-                  updateField("production_url", event.target.value)
-                }
-              />
-            </label>
-          </div>
+        <label className="field full-field">
+          <span>Summary</span>
+          <textarea
+            value={form.summary}
+            onChange={(event) => updateField("summary", event.target.value)}
+            rows={4}
+          />
+        </label>
 
-          <button
-            type="submit"
-            className="button primary wide"
-            disabled={creating}
-          >
-            {creating ? "Creating" : "Create Project"}
-          </button>
-        </form>
-      ) : null}
+        <div className="detail-grid full-field">
+          <label className="field">
+            <span>Repository Path</span>
+            <input
+              value={form.repo_path}
+              onChange={(event) => updateField("repo_path", event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>Repository URL</span>
+            <input
+              value={form.repository_url}
+              onChange={(event) =>
+                updateField("repository_url", event.target.value)
+              }
+            />
+          </label>
+          <label className="field">
+            <span>Preview URL</span>
+            <input
+              value={form.preview_url}
+              onChange={(event) =>
+                updateField("preview_url", event.target.value)
+              }
+            />
+          </label>
+          <label className="field">
+            <span>Production URL</span>
+            <input
+              value={form.production_url}
+              onChange={(event) =>
+                updateField("production_url", event.target.value)
+              }
+            />
+          </label>
+        </div>
+
+        <button
+          type="submit"
+          className="button primary wide"
+          disabled={creating}
+        >
+          {creating ? "Creating" : "Create Project"}
+        </button>
+      </form>
     </section>
   );
 };

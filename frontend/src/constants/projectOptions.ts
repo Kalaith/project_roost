@@ -5,6 +5,9 @@ export const PROJECT_CATEGORY_OPTIONS = [
   { value: "game", label: "Game", groupName: "games" },
   { value: "rust-game", label: "Rust Game", groupName: "rust_games" },
   { value: "template", label: "Template", groupName: "templates" },
+  { value: "fiction", label: "Fiction", groupName: "fiction" },
+  { value: "game-design", label: "Game Design", groupName: "game_design" },
+  { value: "private", label: "Private", groupName: "private" },
 ] as const;
 
 export const PROJECT_STAGE_OPTIONS = [
@@ -30,6 +33,7 @@ export const PROJECT_SHAPE_OPTIONS = [
   "rust+webgl+server",
   "template",
   "design",
+  "static",
   "unknown",
 ] as const;
 

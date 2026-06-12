@@ -36,6 +36,7 @@ spl_autoload_register(function (string $class): void {
 
 use App\Core\Database;
 use App\Repositories\ProjectRepository;
+use App\Services\SharedProjectReconciliationService;
 use App\Services\SummaryImportService;
 use Dotenv\Dotenv;
 
@@ -63,12 +64,29 @@ $repository = new ProjectRepository();
 $imports = new SummaryImportService();
 
 foreach (['apps', 'games', 'rust-games'] as $source) {
-    $result = $repository->importBatch($imports->parse($source));
-    echo sprintf(
-        "Imported %d %s projects.\n",
-        $result['project_count'],
-        $source
-    );
+    try {
+        $result = $repository->importBatch($imports->parse($source));
+        echo sprintf(
+            "Imported %d %s projects.\n",
+            $result['project_count'],
+            $source
+        );
+    } catch (\Throwable $exception) {
+        if ($source !== 'rust-games') {
+            throw $exception;
+        }
+
+        fwrite(STDERR, 'Skipped rust-games import: ' . $exception->getMessage() . PHP_EOL);
+    }
 }
+
+$reconciliation = (new SharedProjectReconciliationService())->reconcile();
+echo sprintf(
+    "Reconciled shared projects: %d profiles created, %d duplicates hidden, %d replacements hidden, %d visible without profiles.\n",
+    $reconciliation['profiles_created'],
+    $reconciliation['duplicate_projects_hidden'],
+    $reconciliation['replaced_projects_hidden'],
+    $reconciliation['visible_projects_without_profiles']
+);
 
 echo "Project Roost tables and seed data are ready.\n";

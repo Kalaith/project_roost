@@ -26,6 +26,7 @@
     "scripts": {
         "start": "php -S localhost:8000 public/index.php",
         "db:init": "php bin/db-init.php",
+        "registry:reconcile": "php bin/reconcile-shared-projects.php",
         "seed:export": "php bin/export-seed-sql.php",
         "init:export": "php bin/export-init-sql.php",
         "test": "php ../../../vendor/bin/phpunit -c phpunit.xml",

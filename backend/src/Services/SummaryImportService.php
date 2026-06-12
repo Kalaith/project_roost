@@ -179,7 +179,7 @@ final class SummaryImportService
             }
 
             $slug = $this->slug((string) $item['project']);
-            $displayName = $this->titleFromSlug($slug);
+            $displayName = $this->displayNameForSlug($slug, '');
             $summary = $this->cleanText((string) ($item['summary'] ?? ''));
             $riskCode = strtolower((string) ($item['risk'] ?? 'no'));
             $riskLabel = $this->cleanText((string) ($item['riskLabel'] ?? ''));
@@ -629,6 +629,11 @@ final class SummaryImportService
     {
         $knownDisplayNames = [
             'adventcon' => 'Adventure Story Generator',
+            'anime_prompt_gen' => 'Anime Prompt Generator',
+            'isitdoneyet' => 'Is It Done Yet?',
+            'kemo_sim' => 'Kemo Simulator',
+            'name_generator' => 'Name Generator API',
+            'writers_studio' => 'Writers Studio',
         ];
 
         $displayName = trim($knownDisplayNames[$slug] ?? '');

@@ -1,5 +1,8 @@
 import React from "react";
-import { PROJECT_STATUS_OPTIONS } from "../constants/projectOptions";
+import {
+  PROJECT_CATEGORY_OPTIONS,
+  PROJECT_STATUS_OPTIONS,
+} from "../constants/projectOptions";
 import type { ProjectFilters } from "../types";
 
 interface FiltersBarProps {
@@ -36,10 +39,11 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
         onChange={(event) => onFilterChange("category", event.target.value)}
       >
         <option value="all">All</option>
-        <option value="app">Apps</option>
-        <option value="game">Games</option>
-        <option value="rust-game">Rust Games</option>
-        <option value="template">Templates</option>
+        {PROJECT_CATEGORY_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
       </select>
     </label>
     <label className="field">

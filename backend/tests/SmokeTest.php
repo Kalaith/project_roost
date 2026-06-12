@@ -6,6 +6,7 @@ namespace Tests;
 
 use App\Services\SummaryImportService;
 use App\Services\ProjectDiscoveryService;
+use App\Services\SharedProjectReconciliationService;
 use PHPUnit\Framework\TestCase;
 
 final class SmokeTest extends TestCase
@@ -73,6 +74,33 @@ final class SmokeTest extends TestCase
         self::assertSame('adventcon', $batch['records'][0]['project']['title']);
         self::assertSame('adventcon', $batch['records'][0]['profile']['slug']);
         self::assertSame('Adventure Story Generator', $batch['records'][0]['profile']['display_name']);
+    }
+
+    public function testSharedProjectReconciliationProfilesFrontpageOnlyRows(): void
+    {
+        $profile = SharedProjectReconciliationService::profileFromProject([
+            'title' => 'Space Colony Simulator',
+            'path' => '/gdd/space_sim/',
+            'description' => 'A design document for a colony simulator.',
+            'group_name' => 'game_design',
+        ]);
+
+        self::assertSame('space_sim', $profile['slug']);
+        self::assertSame('Space Colony Simulator', $profile['display_name']);
+        self::assertSame('game-design', $profile['category']);
+        self::assertSame('design', $profile['shape']);
+        self::assertSame('http://127.0.0.1/gdd/space_sim/', $profile['preview_url']);
+        self::assertSame('https://webhatchery.au/gdd/space_sim/', $profile['production_url']);
+    }
+
+    public function testSharedProjectReconciliationIdentifiesReplacedProjects(): void
+    {
+        $replacement = SharedProjectReconciliationService::replacementSlugForProject([
+            'title' => 'LitRPG Studio',
+            'path' => '/litrpg_studio/',
+        ]);
+
+        self::assertSame('writers_studio', $replacement);
     }
 
     public function testDiscoveryMapsRustGamesToGamesSubfolder(): void
