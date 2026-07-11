@@ -24,7 +24,9 @@ interface ProjectDetailProps {
   deploymentLatest: Record<string, DeploymentRecord | null>;
   deploymentsLoading: boolean;
   saving: boolean;
+  deleting: boolean;
   onSave: (id: number, payload: ProjectUpdatePayload) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }
 
 interface DetailForm {
@@ -69,7 +71,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   deploymentLatest,
   deploymentsLoading,
   saving,
+  deleting,
   onSave,
+  onDelete,
 }) => {
   const [form, setForm] = useState<DetailForm>(emptyForm);
 
@@ -452,9 +456,25 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         type="button"
         className="button primary wide"
         onClick={save}
-        disabled={saving}
+        disabled={saving || deleting}
       >
         Save Changes
+      </button>
+      <button
+        type="button"
+        className="button danger wide"
+        onClick={() => {
+          if (
+            window.confirm(
+              `Delete "${displayName}" from Project Roost? Its reviews and tasks will be removed and the project will be hidden from the frontpage.`,
+            )
+          ) {
+            void onDelete(project.id);
+          }
+        }}
+        disabled={saving || deleting}
+      >
+        {deleting ? "Deleting…" : "Delete Project"}
       </button>
     </section>
   );

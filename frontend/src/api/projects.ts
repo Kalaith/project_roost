@@ -89,6 +89,16 @@ export const createProject = async (
   return unwrap(response.data).project;
 };
 
+export const deleteProject = async (id: number): Promise<void> => {
+  const response = await api.delete<ApiEnvelope<null>>(`/projects/${id}`);
+
+  if (!response.data.success) {
+    throw new Error(
+      response.data.message ?? "Project Roost API request failed.",
+    );
+  }
+};
+
 export const discoverProjects = async (params: {
   search?: string;
   source?: string;

@@ -66,7 +66,9 @@ describe("project site links", () => {
         deploymentLatest={{}}
         deploymentsLoading={false}
         saving={false}
+        deleting={false}
         onSave={vi.fn(async () => undefined)}
+        onDelete={vi.fn(async () => undefined)}
       />,
     );
 

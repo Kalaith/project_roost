@@ -245,6 +245,12 @@ a {
   color: #0f172a;
 }
 
+.button.danger {
+  border-color: #fecaca;
+  background: #ffffff;
+  color: #b91c1c;
+}
+
 .button.wide {
   width: 100%;
   margin-top: 14px;

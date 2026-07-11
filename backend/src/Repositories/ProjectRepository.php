@@ -119,9 +119,26 @@ final class ProjectRepository
             return false;
         }
 
-        foreach ([self::REVIEWS_TABLE, self::RISKS_TABLE, self::TASKS_TABLE, self::PROFILES_TABLE] as $table) {
-            $statement = $this->db->prepare('DELETE FROM ' . $this->q($table) . ' WHERE project_id = :project_id');
-            $statement->execute(['project_id' => $projectId]);
+        $this->db->beginTransaction();
+        try {
+            foreach ([self::REVIEWS_TABLE, self::RISKS_TABLE, self::TASKS_TABLE, self::PROFILES_TABLE] as $table) {
+                $statement = $this->db->prepare('DELETE FROM ' . $this->q($table) . ' WHERE project_id = :project_id');
+                $statement->execute(['project_id' => $projectId]);
+            }
+
+            // The shared projects row stays (other apps reference it), but it must be
+            // hidden or reconciliation will recreate a profile and resurrect the project.
+            $statement = $this->db->prepare(
+                'UPDATE ' . $this->projectTable() . '
+                SET hidden = 1, show_on_homepage = 0, updated_at = :updated_at
+                WHERE id = :id'
+            );
+            $statement->execute(['id' => $projectId, 'updated_at' => date('Y-m-d H:i:s')]);
+
+            $this->db->commit();
+        } catch (\Throwable $exception) {
+            $this->db->rollBack();
+            throw $exception;
         }
 
         return true;

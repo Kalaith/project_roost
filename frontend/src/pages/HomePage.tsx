@@ -4,6 +4,7 @@ import {
   getFixQueue,
   getProjectDeployments,
   createProject,
+  deleteProject,
   discoverProjects,
   listProjects,
   updateProject,
@@ -91,6 +92,7 @@ export const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [deploymentsLoading, setDeploymentsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [creating, setCreating] = useState(false);
   const [discovering, setDiscovering] = useState(false);
   const [error, setError] = useState("");
@@ -229,6 +231,22 @@ export const HomePage: React.FC = () => {
     }
   };
 
+  const removeProject = async (id: number) => {
+    setDeleting(true);
+    setError("");
+
+    try {
+      await deleteProject(id);
+      setProjects((current) => current.filter((project) => project.id !== id));
+      setSelectedId((current) => (current === id ? null : current));
+      await loadData();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const addProject = async (payload: ProjectCreatePayload) => {
     setCreating(true);
     setError("");
@@ -343,7 +361,9 @@ export const HomePage: React.FC = () => {
           deploymentLatest={selectedDeploymentLatest}
           deploymentsLoading={deploymentsLoading}
           saving={saving}
+          deleting={deleting}
           onSave={saveProject}
+          onDelete={removeProject}
         />
       </div>
 
