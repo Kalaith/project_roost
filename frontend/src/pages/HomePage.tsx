@@ -20,8 +20,10 @@ import { FixQueue } from "../components/FixQueue";
 import { ProjectCreatePanel } from "../components/ProjectCreatePanel";
 import { ProjectDetail } from "../components/ProjectDetail";
 import { ProjectTable } from "../components/ProjectTable";
+import { MoonIcon, SunIcon } from "../components/icons";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useProjectFilters } from "../stores/useProjectFilters";
+import { useTheme } from "../stores/useTheme";
 import type {
   BugReport,
   DashboardSummary,
@@ -72,8 +74,12 @@ const getUserLabel = (user: User | null): string => {
   );
 };
 
+type TabId = "projects" | "queue" | "publish" | "reports";
+
 export const HomePage: React.FC = () => {
   const { filters, setFilter, resetFilters } = useProjectFilters();
+  const { theme, toggleTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState<TabId>("projects");
   const authUser = useAuthStore((state) => state.user);
   const [projects, setProjects] = useState<Project[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -305,6 +311,24 @@ export const HomePage: React.FC = () => {
     }
   };
 
+  const effectiveTab: TabId =
+    activeTab === "reports" && !isAdmin ? "projects" : activeTab;
+
+  const tabs: Array<{ id: TabId; label: string; count?: number }> = [
+    { id: "projects", label: "Projects", count: projects.length },
+    { id: "queue", label: "Fix Queue", count: tasks.length },
+    { id: "publish", label: "Publish" },
+    ...(isAdmin
+      ? [
+          {
+            id: "reports" as TabId,
+            label: "Bug Reports",
+            count: bugReports.length,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -312,68 +336,111 @@ export const HomePage: React.FC = () => {
           <span className="eyebrow">WebHatchery</span>
           <h1>Project Roost</h1>
         </div>
-        <div
-          className="header-status"
-          title={authUserLabel ? `Signed in as ${authUserLabel}` : undefined}
-        >
-          <span>{loading ? "Loading" : "Ready"}</span>
-          {authUserLabel ? (
-            <>
-              <span className="header-status-divider" aria-hidden="true" />
-              <span className="auth-indicator">
-                <span className="auth-dot" aria-hidden="true" />
-                <span className="auth-label">Signed in</span>
-                <strong className="header-user">{authUserLabel}</strong>
-              </span>
-            </>
-          ) : null}
+        <div className="header-controls">
+          <div
+            className="header-status"
+            title={authUserLabel ? `Signed in as ${authUserLabel}` : undefined}
+          >
+            <span>{loading ? "Loading" : "Ready"}</span>
+            {authUserLabel ? (
+              <>
+                <span className="header-status-divider" aria-hidden="true" />
+                <span className="auth-indicator">
+                  <span className="auth-dot" aria-hidden="true" />
+                  <span className="auth-label">Signed in</span>
+                  <strong className="header-user">{authUserLabel}</strong>
+                </span>
+              </>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+            title={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+          >
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+          </button>
         </div>
       </header>
 
       {error ? <div className="error-banner">{error}</div> : null}
 
       <DashboardCards summary={summary} />
-      <FiltersBar
-        filters={filters}
-        onFilterChange={setFilter}
-        onRefresh={() => void loadData()}
-        onReset={resetFilters}
-        loading={loading}
-      />
-      <ProjectCreatePanel
-        creating={creating}
-        discoveries={discoveries}
-        discovering={discovering}
-        discoveryMessage={discoveryMessage}
-        onCreate={addProject}
-        onDiscover={discoverNewProjects}
-      />
 
-      <div className="workspace-grid">
-        <ProjectTable
-          projects={projects}
-          selectedId={selectedId}
-          onSelect={(project) => setSelectedId(project.id)}
-        />
-        <ProjectDetail
-          project={selectedProject}
-          deployments={selectedDeployments}
-          deploymentLatest={selectedDeploymentLatest}
-          deploymentsLoading={deploymentsLoading}
-          saving={saving}
-          deleting={deleting}
-          onSave={saveProject}
-          onDelete={removeProject}
-        />
-      </div>
+      <nav className="tab-bar" aria-label="Dashboard sections">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`tab ${effectiveTab === tab.id ? "active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+            {tab.count !== undefined ? (
+              <span className="tab-count">{tab.count}</span>
+            ) : null}
+          </button>
+        ))}
+      </nav>
 
-      <div className="lower-grid">
-        <FixQueue tasks={tasks} onTaskStatusChange={changeTaskStatus} />
-        <DeploymentPanel deployments={summary?.deployments} />
-      </div>
+      {effectiveTab === "projects" ? (
+        <div className="tab-panel">
+          <ProjectCreatePanel
+            creating={creating}
+            discoveries={discoveries}
+            discovering={discovering}
+            discoveryMessage={discoveryMessage}
+            onCreate={addProject}
+            onDiscover={discoverNewProjects}
+          />
+          <FiltersBar
+            filters={filters}
+            onFilterChange={setFilter}
+            onRefresh={() => void loadData()}
+            onReset={resetFilters}
+            loading={loading}
+            shownCount={projects.length}
+          />
+          <div className="workspace-grid">
+            <ProjectTable
+              projects={projects}
+              selectedId={selectedId}
+              onSelect={(project) => setSelectedId(project.id)}
+            />
+            <ProjectDetail
+              project={selectedProject}
+              deployments={selectedDeployments}
+              deploymentLatest={selectedDeploymentLatest}
+              deploymentsLoading={deploymentsLoading}
+              saving={saving}
+              deleting={deleting}
+              onSave={saveProject}
+              onDelete={removeProject}
+            />
+          </div>
+        </div>
+      ) : null}
 
-      {isAdmin ? (
-        <div className="lower-grid">
+      {effectiveTab === "queue" ? (
+        <div className="tab-panel">
+          <FixQueue tasks={tasks} onTaskStatusChange={changeTaskStatus} />
+        </div>
+      ) : null}
+
+      {effectiveTab === "publish" ? (
+        <div className="tab-panel">
+          <DeploymentPanel deployments={summary?.deployments} />
+        </div>
+      ) : null}
+
+      {effectiveTab === "reports" && isAdmin ? (
+        <div className="tab-panel">
           <BugReportQueue reports={bugReports} onModerate={moderateReport} />
         </div>
       ) : null}

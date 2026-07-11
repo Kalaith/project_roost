@@ -65,6 +65,24 @@ const emptyForm: DetailForm = {
   hidden: false,
 };
 
+const formFromProject = (project: Project): DetailForm => ({
+  name: project.name,
+  display_name: project.display_name,
+  status: project.status,
+  stage: project.stage,
+  category: project.category,
+  shape: project.shape,
+  summary: project.summary,
+  repo_path: project.repo_path ?? "",
+  preview_url: project.preview_url ?? "",
+  production_url: project.production_url ?? "",
+  version: project.version,
+  repository_url: project.repository_url ?? "",
+  severity: project.risk.severity,
+  show_on_homepage: project.show_on_homepage,
+  hidden: project.hidden,
+});
+
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
   deployments,
@@ -76,30 +94,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   onDelete,
 }) => {
   const [form, setForm] = useState<DetailForm>(emptyForm);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    if (!project) {
-      setForm(emptyForm);
-      return;
-    }
-
-    setForm({
-      name: project.name,
-      display_name: project.display_name,
-      status: project.status,
-      stage: project.stage,
-      category: project.category,
-      shape: project.shape,
-      summary: project.summary,
-      repo_path: project.repo_path ?? "",
-      preview_url: project.preview_url ?? "",
-      production_url: project.production_url ?? "",
-      version: project.version,
-      repository_url: project.repository_url ?? "",
-      severity: project.risk.severity,
-      show_on_homepage: project.show_on_homepage,
-      hidden: project.hidden,
-    });
+    setEditing(false);
+    setForm(project ? formFromProject(project) : emptyForm);
   }, [project]);
 
   if (!project) {
@@ -115,6 +114,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     value: DetailForm[K],
   ) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const cancelEditing = () => {
+    setForm(formFromProject(project));
+    setEditing(false);
   };
 
   const save = async () => {
@@ -141,6 +145,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         severity: form.severity,
       },
     });
+    setEditing(false);
   };
 
   const siteEnvironment = currentSiteEnvironment();
@@ -164,9 +169,20 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     <section className="panel detail-panel" aria-label="Project detail">
       <div className="panel-header">
         <h2>{displayName}</h2>
-        <span className={riskClass(project.risk.severity)}>
-          {project.risk.severity}
-        </span>
+        <div className="panel-header-actions">
+          <span className={riskClass(project.risk.severity)}>
+            {project.risk.severity}
+          </span>
+          {!editing ? (
+            <button
+              type="button"
+              className="button secondary small"
+              onClick={() => setEditing(true)}
+            >
+              Edit Project
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="score-strip">
@@ -184,6 +200,48 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         </span>
       </div>
 
+      {!editing ? (
+        <>
+          <div className="fact-grid">
+            <div className="fact">
+              <span>Status</span>
+              <strong>{project.status}</strong>
+            </div>
+            <div className="fact">
+              <span>Stage</span>
+              <strong>{project.stage}</strong>
+            </div>
+            <div className="fact">
+              <span>Category</span>
+              <strong>{project.category}</strong>
+            </div>
+            <div className="fact">
+              <span>Shape</span>
+              <strong>{project.shape}</strong>
+            </div>
+            <div className="fact">
+              <span>Version</span>
+              <strong>{project.version}</strong>
+            </div>
+            <div className="fact">
+              <span>Visibility</span>
+              <strong>
+                {project.hidden
+                  ? "Hidden"
+                  : project.show_on_homepage
+                    ? "On frontpage"
+                    : "Listed"}
+              </strong>
+            </div>
+          </div>
+          {project.summary ? (
+            <p className="detail-summary-text">{project.summary}</p>
+          ) : null}
+        </>
+      ) : null}
+
+      {editing ? (
+      <>
       <div className="detail-grid">
         <label className="field">
           <span>Name</span>
@@ -339,6 +397,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           rows={7}
         />
       </label>
+      </>
+      ) : null}
 
       {project.latest_review?.priority_fix ? (
         <div className="priority-box">
@@ -452,30 +512,42 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         </div>
       </div>
 
-      <button
-        type="button"
-        className="button primary wide"
-        onClick={save}
-        disabled={saving || deleting}
-      >
-        Save Changes
-      </button>
-      <button
-        type="button"
-        className="button danger wide"
-        onClick={() => {
-          if (
-            window.confirm(
-              `Delete "${displayName}" from Project Roost? Its reviews and tasks will be removed and the project will be hidden from the frontpage.`,
-            )
-          ) {
-            void onDelete(project.id);
-          }
-        }}
-        disabled={saving || deleting}
-      >
-        {deleting ? "Deleting…" : "Delete Project"}
-      </button>
+      {editing ? (
+        <div className="detail-footer">
+          <button
+            type="button"
+            className="button primary wide full-width"
+            onClick={save}
+            disabled={saving || deleting}
+          >
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
+          <button
+            type="button"
+            className="button secondary wide"
+            onClick={cancelEditing}
+            disabled={saving || deleting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="button danger wide"
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Delete "${displayName}" from Project Roost? Its reviews and tasks will be removed and the project will be hidden from the frontpage.`,
+                )
+              ) {
+                void onDelete(project.id);
+              }
+            }}
+            disabled={saving || deleting}
+          >
+            {deleting ? "Deleting…" : "Delete Project"}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 };

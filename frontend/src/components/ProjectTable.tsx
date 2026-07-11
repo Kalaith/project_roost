@@ -22,86 +22,83 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
         <h2>Project Library</h2>
         <span>{projects.length} shown</span>
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th>Category</th>
-              <th>Risk</th>
-              <th>Overall</th>
-              <th>Security</th>
-              <th>Status</th>
-              <th>Site</th>
-            </tr>
-          </thead>
-          <tbody>
-            {projects.map((project) => {
-              const siteUrl = siteUrlFor(project, siteEnvironment);
-              const displayName = project.display_name || project.name;
-              const projectIdentifier =
-                project.name === project.slug
-                  ? project.name
-                  : `${project.name} / ${project.slug}`;
+      <div className="project-card-stack">
+        {projects.map((project) => {
+          const siteUrl = siteUrlFor(project, siteEnvironment);
+          const displayName = project.display_name || project.name;
+          const projectIdentifier =
+            project.name === project.slug
+              ? project.name
+              : `${project.name} / ${project.slug}`;
 
-              return (
-                <tr
-                  key={project.id}
-                  className={selectedId === project.id ? "selected" : ""}
-                  onClick={() => onSelect(project)}
+          return (
+            <article
+              key={project.id}
+              className={`project-card ${
+                selectedId === project.id ? "selected" : ""
+              }`}
+              onClick={() => onSelect(project)}
+            >
+              <div className="project-card-main">
+                <div className="project-card-title">
+                  <button
+                    type="button"
+                    className="row-button"
+                    onClick={() => onSelect(project)}
+                  >
+                    <strong>{displayName}</strong>
+                  </button>
+                </div>
+                <span className="project-card-sub">
+                  {projectIdentifier} • {project.category}
+                </span>
+              </div>
+              <div className="project-card-stats">
+                <div className="stat-block">
+                  <span>Risk</span>
+                  <span className={riskClass(project.risk.severity)}>
+                    {project.risk.severity}
+                  </span>
+                </div>
+                <div className="stat-block">
+                  <span>Overall</span>
+                  <span
+                    className={scoreClass(project.latest_review?.overall_score)}
+                  >
+                    {formatScore(project.latest_review?.overall_score)}
+                  </span>
+                </div>
+                <div className="stat-block">
+                  <span>Security</span>
+                  <span
+                    className={scoreClass(
+                      project.latest_review?.security_score,
+                    )}
+                  >
+                    {formatScore(project.latest_review?.security_score)}
+                  </span>
+                </div>
+                <div className="stat-block">
+                  <span>Status</span>
+                  <span className="badge neutral">{project.status}</span>
+                </div>
+                <a
+                  className="site-shortcut"
+                  href={siteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open ${displayName} site`}
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  <td>
-                    <button
-                      type="button"
-                      className="row-button"
-                      onClick={() => onSelect(project)}
-                    >
-                      <strong>{displayName}</strong>
-                      <span>{projectIdentifier}</span>
-                    </button>
-                  </td>
-                  <td>{project.category}</td>
-                  <td>
-                    <span className={riskClass(project.risk.severity)}>
-                      {project.risk.severity}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={scoreClass(
-                        project.latest_review?.overall_score,
-                      )}
-                    >
-                      {formatScore(project.latest_review?.overall_score)}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={scoreClass(
-                        project.latest_review?.security_score,
-                      )}
-                    >
-                      {formatScore(project.latest_review?.security_score)}
-                    </span>
-                  </td>
-                  <td>{project.status}</td>
-                  <td>
-                    <a
-                      className="site-shortcut"
-                      href={siteUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={`Open ${displayName} site`}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      Site
-                    </a>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  Site
+                </a>
+              </div>
+            </article>
+          );
+        })}
+        {projects.length === 0 ? (
+          <div className="empty-state">No projects match the filters.</div>
+        ) : null}
       </div>
     </section>
   );
