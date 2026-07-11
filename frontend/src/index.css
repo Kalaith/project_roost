@@ -634,6 +634,54 @@ tbody tr.selected {
   padding: 6px 8px;
 }
 
+.bug-report-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.bug-report-facts span {
+  border-radius: 999px;
+  background: #edf2f7;
+  padding: 3px 8px;
+}
+
+.bug-report-warn {
+  margin-top: 8px;
+  color: #b45309;
+  font-size: 0.82rem;
+}
+
+.bug-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bug-report-actions button {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.bug-report-actions button:first-of-type {
+  border-color: #3a8eef;
+  background: #4a9eff;
+  color: #fff;
+}
+
+.bug-report-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .create-launcher,
 .create-panel {
   margin-bottom: 12px;

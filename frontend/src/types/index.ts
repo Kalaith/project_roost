@@ -94,6 +94,22 @@ export interface ProjectTask {
   priority_score?: number;
 }
 
+export interface BugReport {
+  id: number;
+  project_id: number | null;
+  project_slug: string;
+  summary: string;
+  description: string;
+  contact: string | null;
+  game_version: string | null;
+  page_url: string | null;
+  user_agent: string | null;
+  status: string;
+  promoted_task_id: number | null;
+  created_at: string | null;
+  reviewed_at: string | null;
+}
+
 export interface DeploymentRecord {
   id: number;
   project_id: number | null;

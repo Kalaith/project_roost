@@ -16,6 +16,40 @@ final class SummaryImportService
         'rust-games' => 'rust-games-summary',
     ];
 
+    private const GAME_DESCRIPTIONS = [
+        'adventurer_guild' => 'Fantasy guild management simulation about leading an adventurer guild across generations, relationships, territories, and legacy systems.',
+        'ashes_of_aeloria' => 'Strategy game with resource management, tactical battles, and story-driven progression.',
+        'blacksmith_forge' => 'Crafting simulation about running a forge, handling customer orders, managing materials, and improving blacksmithing skill.',
+        'chyrralon' => 'Digital collectible card game about evolving creatures and building adaptive decks.',
+        'daemon_directorate' => 'Dark corporate satire strategy game about managing daemon operations.',
+        'dragons_den' => 'Idle game with treasure collection, upgrades, minions, and prestige mechanics.',
+        'dungeon_core' => 'Dungeon management game where players place monsters and traps to defend against adventurers.',
+        'dungeon_crawler' => 'Party-based dungeon exploration RPG with combat and exploration systems.',
+        'dungeon_master' => 'Digital dungeon master toolkit for tabletop RPG campaign management.',
+        'emoji_tower' => 'Emoji-themed tower defense game with waves, towers, and base defense.',
+        'empire_builder' => 'Kingdom-building strategy game with hero recruitment, buildings, and real-time enemy combat.',
+        'food_frenzy' => 'Dark comedy restaurant simulation game about serving strange guests, building recipes, and scaling a chaotic kitchen.',
+        'heart_season' => 'Multiplayer romance drama set in a reality-TV-inspired villa with attraction, rivalry, gossip, and public perception systems.',
+        'hive_mind' => 'Collective intelligence simulation about managing distributed entities and swarm behavior.',
+        'interstellar_romance' => 'Sci-fi dating simulator involving romance, diplomacy, and alien species.',
+        'kemo_sim' => 'God simulation game about collecting, breeding, training, and managing kemonomimi creatures.',
+        'kingdom_wars' => 'Text-based kingdom strategy game with resources, armies, and warfare.',
+        'last_hope' => 'Post-apocalyptic narrative survival game about restoration and humanity\'s survival.',
+        'magical_girl' => 'Magical girl management game with recruitment, training, and missions.',
+        'master_thief' => 'Strategic heist management game with crew building and automated missions.',
+        'mmo_sandbox' => 'MMO interface sandbox covering character creation, crafting, guilds, PvP, markets, skills, and exploration.',
+        'monster_farm' => 'Monster raising simulation inspired by creature collecting and virtual pet games.',
+        'monsterworks' => 'Dark fantasy grid-based factory automation game with creatures, buildings, and resource flows.',
+        'mytherra' => 'Long-running world simulation about civilizations, divine influence, shared-world events, and evolving societies.',
+        'nightmare_shift' => 'Horror taxi survival game about surviving supernatural night-shift encounters.',
+        'planet_trader' => 'Terraforming company simulation about buying planets, changing environments, and selling to alien species.',
+        'robot_battler' => 'Turn-based robot combat game with customizable mechs and progression systems.',
+        'stellar_legacy' => 'Space empire builder about starship command, resource management, exploration, and interstellar expansion.',
+        'tb_realms' => 'Fantasy trading simulation where magic and commerce drive progression.',
+        'xenomorph_park' => 'Sci-fi park management and survival game about alien containment and visitor safety.',
+        'xytherra' => '4X grand strategy game concept focused on large-scale empire play.',
+    ];
+
     public function parse(string $source, ?string $html = null): array
     {
         $source = strtolower(trim($source));
@@ -180,7 +214,12 @@ final class SummaryImportService
 
             $slug = $this->slug((string) $item['project']);
             $displayName = $this->displayNameForSlug($slug, '');
-            $summary = $this->cleanText((string) ($item['summary'] ?? ''));
+            $reviewNotes = $this->cleanText((string) ($item['summary'] ?? ''));
+            $catalogDescription = $this->gameDescriptionForSlug(
+                $slug,
+                $this->cleanText((string) ($item['description'] ?? '')),
+                $displayName
+            );
             $riskCode = strtolower((string) ($item['risk'] ?? 'no'));
             $riskLabel = $this->cleanText((string) ($item['riskLabel'] ?? ''));
             $securityScore = isset($item['security']) ? (float) $item['security'] : null;
@@ -193,7 +232,7 @@ final class SummaryImportService
                 'project' => [
                     'title' => $slug,
                     'path' => 'H:\\WebHatchery\\game_apps\\' . $slug,
-                    'description' => $summary,
+                    'description' => $catalogDescription,
                     'stage' => $status === 'MVP' ? 'mvp' : 'prototype',
                     'status' => $status,
                     'version' => '0.1.0',
@@ -208,7 +247,7 @@ final class SummaryImportService
                     'display_name' => $displayName,
                     'category' => 'game',
                     'shape' => strtolower((string) ($item['shape'] ?? 'unknown')),
-                    'summary' => $summary,
+                    'summary' => $catalogDescription,
                     'preview_url' => 'http://127.0.0.1/' . $slug . '/',
                     'production_url' => 'https://webhatchery.au/' . $slug . '/',
                     'source' => $source,
@@ -221,7 +260,7 @@ final class SummaryImportService
                     'backend_score' => isset($item['backend']) ? (float) $item['backend'] : null,
                     'security_score' => $securityScore,
                     'overall_score' => $overallScore,
-                    'notes' => $summary,
+                    'notes' => $reviewNotes,
                     'priority_fix' => $task ? 'Review data authority and security posture for ' . $displayName . '.' : '',
                 ],
                 'risk' => [
@@ -230,11 +269,11 @@ final class SummaryImportService
                     'data_risk' => $riskLabel !== '' ? $riskLabel : $riskCode,
                     'env_risk' => 'standard',
                     'ownership_risk' => $riskCode === 'high' ? 'review shared-data boundaries' : 'standard',
-                    'notes' => $summary,
+                    'notes' => $reviewNotes,
                 ],
                 'task' => $task ? [
                     'title' => 'Review ' . $displayName . ' security posture',
-                    'description' => $summary,
+                    'description' => $reviewNotes,
                     'type' => 'security',
                     'priority' => $severity === 'high' ? 'high' : 'medium',
                     'status' => 'todo',
@@ -629,11 +668,41 @@ final class SummaryImportService
     {
         $knownDisplayNames = [
             'adventcon' => 'Adventure Story Generator',
+            'adventurer_guild' => 'Adventurers Guild',
             'anime_prompt_gen' => 'Anime Prompt Generator',
+            'ashes_of_aeloria' => 'Ashes of Aeloria',
+            'blacksmith_forge' => 'Blacksmith Forge',
+            'chyrralon' => 'Chyrralon',
+            'daemon_directorate' => 'Daemon Directorate',
+            'dragons_den' => 'Dragon\'s Den',
+            'dungeon_core' => 'Dungeon Core',
+            'dungeon_crawler' => 'Dungeon Crawler',
+            'dungeon_master' => 'Dungeon Master',
+            'emoji_tower' => 'Emoji Tower Defense',
+            'empire_builder' => 'Empire Builder',
+            'food_frenzy' => 'Food Frenzy',
+            'heart_season' => 'Heart Season',
+            'hive_mind' => 'Hive Mind',
+            'interstellar_romance' => 'Interstellar Romance',
             'isitdoneyet' => 'Is It Done Yet?',
-            'kemo_sim' => 'Kemo Simulator',
+            'kemo_sim' => 'Kemonomimi Sim',
+            'kingdom_wars' => 'Kingdom Wars',
+            'last_hope' => 'Last Hope',
+            'magical_girl' => 'Magical Girl Simulator',
+            'master_thief' => 'Master Thief',
+            'mmo_sandbox' => 'MMO Sandbox',
+            'monster_farm' => 'Monster Farm',
+            'monsterworks' => 'Monsterworks: Dark Industry',
+            'mytherra' => 'Mytherra',
             'name_generator' => 'Name Generator API',
+            'nightmare_shift' => 'Nightmare Shift',
+            'planet_trader' => 'Planet Trader',
+            'robot_battler' => 'Robot Battler',
+            'stellar_legacy' => 'Stellar Legacy',
+            'tb_realms' => 'Tradeborn Realms',
             'writers_studio' => 'Writers Studio',
+            'xenomorph_park' => 'Xenomorph Park',
+            'xytherra' => 'Xytherra',
         ];
 
         $displayName = trim($knownDisplayNames[$slug] ?? '');
@@ -647,6 +716,21 @@ final class SummaryImportService
         }
 
         return $displayName;
+    }
+
+    private function gameDescriptionForSlug(string $slug, string $incomingDescription, string $displayName): string
+    {
+        $description = trim($incomingDescription);
+        if ($description !== '') {
+            return $description;
+        }
+
+        $description = self::GAME_DESCRIPTIONS[$slug] ?? '';
+        if ($description !== '') {
+            return $description;
+        }
+
+        return $displayName . ' is a WebHatchery browser game.';
     }
 
     private function shapeFromBackend(string $backendShape): string

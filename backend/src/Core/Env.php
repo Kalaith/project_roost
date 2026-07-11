@@ -20,6 +20,14 @@ final class Env
         return $value;
     }
 
+    public static function optional(string $name, string $default = ''): string
+    {
+        $value = $_ENV[$name] ?? $_SERVER[$name] ?? getenv($name);
+        $value = is_string($value) ? trim($value) : '';
+
+        return $value !== '' ? $value : $default;
+    }
+
     public static function requiredInt(string $name): int
     {
         $value = self::required($name);

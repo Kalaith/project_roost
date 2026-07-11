@@ -1,9 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import {
-  registerAuthTokenResolver,
-  registerUnauthorizedCallback,
-} from "../api/client";
+import { registerAuthTokenResolver } from "../api/client";
 import type { User } from "../types";
 
 interface AuthState {
@@ -26,10 +23,6 @@ const useAuthStore = create<AuthState>()(
     },
   ),
 );
-
-registerUnauthorizedCallback(() => {
-  useAuthStore.getState().logout();
-});
 
 registerAuthTokenResolver(() => useAuthStore.getState().token);
 

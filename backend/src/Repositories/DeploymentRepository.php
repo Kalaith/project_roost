@@ -25,7 +25,7 @@ final class DeploymentRepository
     public function record(array $payload): array
     {
         $projectSlug = $this->slug((string) ($payload['project'] ?? $payload['project_slug'] ?? 'unknown_project'));
-        $projectId = $this->projectIdBySlug($projectSlug);
+        $projectId = $this->ensureProjectProfile($projectSlug, $payload);
         $deployedAt = trim((string) ($payload['deployed_at'] ?? ''));
         if ($deployedAt === '') {
             $deployedAt = date('Y-m-d H:i:s');
@@ -57,8 +57,10 @@ final class DeploymentRepository
                 (:project_id, :project_slug, :environment, :target_type, :status, :frontend_deployed, :backend_deployed, :destination_path, :remote_path, :source_path, :publish_mode, :git_commit, :actor, :notes, :deployed_at, :created_at)
         ');
         $statement->execute($data);
+        $deploymentId = (int) $this->db->lastInsertId();
+        $this->backfillDeploymentProjectIds($projectSlug, $projectId);
 
-        return $this->getById((int) $this->db->lastInsertId());
+        return $this->getById($deploymentId);
     }
 
     public function latestByEnvironment(?string $projectSlug = null): array
@@ -130,25 +132,218 @@ final class DeploymentRepository
         return $this->row($statement->fetch());
     }
 
-    private function projectIdBySlug(string $slug): ?int
+    private function ensureProjectProfile(string $slug, array $payload): int
+    {
+        $profileProjectId = $this->projectIdByProfileSlug($slug);
+        if ($profileProjectId !== null) {
+            return $profileProjectId;
+        }
+
+        $sourcePath = $this->nullableString($payload['source_path'] ?? null, 500);
+        $projectId = $this->projectIdBySourcePathOrSlug($slug, $sourcePath);
+        if ($projectId === null) {
+            $projectId = $this->insertProjectFromDeployment($slug, $payload, $sourcePath);
+        }
+
+        if (!$this->projectHasProfile($projectId)) {
+            $this->insertProfileFromDeployment($projectId, $slug, $payload, $sourcePath);
+        }
+
+        return $projectId;
+    }
+
+    private function projectIdByProfileSlug(string $slug): ?int
     {
         $statement = $this->db->prepare('SELECT project_id FROM ' . $this->q(self::PROFILES_TABLE) . ' WHERE slug = :slug');
         $statement->execute(['slug' => $slug]);
         $value = $statement->fetchColumn();
-        if ($value !== false) {
-            return (int) $value;
-        }
 
+        return $value !== false ? (int) $value : null;
+    }
+
+    private function projectIdBySourcePathOrSlug(string $slug, ?string $sourcePath): ?int
+    {
         $statement = $this->db->prepare(
-            'SELECT id FROM ' . $this->q($this->projectsTable) . ' WHERE title = :title OR path LIKE :path ORDER BY id ASC LIMIT 1'
+            'SELECT id
+            FROM ' . $this->q($this->projectsTable) . '
+            WHERE title = :slug
+                OR title = :display_title
+                OR LOWER(REPLACE(REPLACE(title, " ", "_"), "-", "_")) = :normalized_slug
+                OR path = :source_path
+                OR LOWER(TRIM(TRAILING "/" FROM REPLACE(path, CHAR(92), "/"))) LIKE :path_suffix
+            ORDER BY id ASC
+            LIMIT 1'
         );
         $statement->execute([
-            'title' => str_replace('_', ' ', $slug),
-            'path' => '%' . $slug,
+            'slug' => $slug,
+            'normalized_slug' => $slug,
+            'display_title' => $this->displayNameFromSlug($slug),
+            'source_path' => $sourcePath ?? '',
+            'path_suffix' => '%/' . $slug,
         ]);
         $value = $statement->fetchColumn();
 
         return $value !== false ? (int) $value : null;
+    }
+
+    private function projectHasProfile(int $projectId): bool
+    {
+        $statement = $this->db->prepare('SELECT 1 FROM ' . $this->q(self::PROFILES_TABLE) . ' WHERE project_id = :project_id');
+        $statement->execute(['project_id' => $projectId]);
+
+        return $statement->fetchColumn() !== false;
+    }
+
+    private function insertProjectFromDeployment(string $slug, array $payload, ?string $sourcePath): int
+    {
+        $metadata = $this->deploymentProjectMetadata($slug, $payload, $sourcePath);
+        $now = date('Y-m-d H:i:s');
+
+        $statement = $this->db->prepare('
+            INSERT INTO ' . $this->q($this->projectsTable) . '
+                (title, path, description, stage, status, version, group_name, repository_type, repository_url, hidden, show_on_homepage, created_at, updated_at)
+            VALUES
+                (:title, :path, :description, :stage, :status, :version, :group_name, :repository_type, :repository_url, :hidden, :show_on_homepage, :created_at, :updated_at)
+        ');
+        $statement->execute([
+            'title' => $slug,
+            'path' => $sourcePath,
+            'description' => $metadata['summary'],
+            'stage' => 'mvp',
+            'status' => 'MVP',
+            'version' => '0.1.0',
+            'group_name' => $metadata['group_name'],
+            'repository_type' => 'local',
+            'repository_url' => null,
+            'hidden' => 0,
+            'show_on_homepage' => 1,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        return (int) $this->db->lastInsertId();
+    }
+
+    private function insertProfileFromDeployment(int $projectId, string $slug, array $payload, ?string $sourcePath): void
+    {
+        $metadata = $this->deploymentProjectMetadata($slug, $payload, $sourcePath);
+        $now = date('Y-m-d H:i:s');
+
+        $statement = $this->db->prepare('
+            INSERT INTO ' . $this->q(self::PROFILES_TABLE) . '
+                (project_id, slug, display_name, category, shape, summary, preview_url, production_url, source, created_at, updated_at)
+            VALUES
+                (:project_id, :slug, :display_name, :category, :shape, :summary, :preview_url, :production_url, :source, :created_at, :updated_at)
+            ON DUPLICATE KEY UPDATE
+                display_name = VALUES(display_name),
+                category = VALUES(category),
+                shape = VALUES(shape),
+                summary = VALUES(summary),
+                preview_url = VALUES(preview_url),
+                production_url = VALUES(production_url),
+                source = VALUES(source),
+                updated_at = VALUES(updated_at)
+        ');
+        $statement->execute([
+            'project_id' => $projectId,
+            'slug' => $slug,
+            'display_name' => $metadata['display_name'],
+            'category' => $metadata['category'],
+            'shape' => $metadata['shape'],
+            'summary' => $metadata['summary'],
+            'preview_url' => $metadata['preview_url'],
+            'production_url' => $metadata['production_url'],
+            'source' => 'deployment',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+    }
+
+    private function deploymentProjectMetadata(string $slug, array $payload, ?string $sourcePath): array
+    {
+        $displayName = $this->displayNameFromSlug($slug);
+        $category = $this->categoryFromSourcePath($sourcePath);
+        $hasBackend = (bool) ($payload['backend_deployed'] ?? false);
+
+        return [
+            'display_name' => $displayName,
+            'category' => $category,
+            'shape' => $category === 'rust-game' ? 'rust+webgl' : ($hasBackend ? 'frontend+backend' : 'frontend-only'),
+            'summary' => $displayName . ' is a WebHatchery project deployed through the shared publisher.',
+            'preview_url' => 'http://127.0.0.1/' . $this->publicPathFromSlug($slug) . '/',
+            'production_url' => $this->productionUrlFromRemotePath($payload['remote_path'] ?? null, $slug),
+            'group_name' => $this->groupNameForCategory($category),
+        ];
+    }
+
+    private function backfillDeploymentProjectIds(string $slug, int $projectId): void
+    {
+        $statement = $this->db->prepare(
+            'UPDATE ' . $this->q(self::DEPLOYMENTS_TABLE) . '
+            SET project_id = :project_id
+            WHERE project_slug = :project_slug AND project_id IS NULL'
+        );
+        $statement->execute([
+            'project_id' => $projectId,
+            'project_slug' => $slug,
+        ]);
+    }
+
+    private function displayNameFromSlug(string $slug): string
+    {
+        $isRust = str_starts_with($slug, 'rust_');
+        $baseSlug = $isRust ? substr($slug, 5) : $slug;
+        $words = array_filter(explode('_', $baseSlug), fn (string $word): bool => $word !== '');
+        $displayName = implode(' ', array_map(
+            fn (string $word): string => ucfirst($word),
+            $words
+        ));
+
+        if ($displayName === '') {
+            $displayName = 'Unknown Project';
+        }
+
+        return $isRust ? $displayName . ' (Rust)' : $displayName;
+    }
+
+    private function categoryFromSourcePath(?string $sourcePath): string
+    {
+        $path = strtolower(str_replace('/', '\\', (string) $sourcePath));
+        if (str_contains($path, '\\rustgames\\') || str_contains($path, '\\adultgames\\')) {
+            return 'rust-game';
+        }
+
+        if (str_contains($path, '\\game_apps\\')) {
+            return 'game';
+        }
+
+        return 'app';
+    }
+
+    private function groupNameForCategory(string $category): string
+    {
+        return match ($category) {
+            'game' => 'game_apps',
+            'rust-game' => 'rust_games',
+            default => 'apps',
+        };
+    }
+
+    private function publicPathFromSlug(string $slug): string
+    {
+        return str_starts_with($slug, 'rust_') ? substr($slug, 5) : $slug;
+    }
+
+    private function productionUrlFromRemotePath(mixed $remotePath, string $slug): string
+    {
+        $path = trim(str_replace('\\', '/', (string) $remotePath));
+        $path = preg_replace('#^/public_html/?#', '/', $path) ?? '';
+        $path = trim($path, '/');
+        if ($path === '') {
+            $path = $this->publicPathFromSlug($slug);
+        }
+
+        return 'https://webhatchery.au/' . $path . '/';
     }
 
     private function row(array|false $row): array

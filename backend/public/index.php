@@ -35,6 +35,7 @@ spl_autoload_register(function (string $class): void {
     }
 }, true, true);
 
+use App\Controllers\BugReportController;
 use App\Controllers\DashboardController;
 use App\Controllers\DeploymentController;
 use App\Controllers\HealthController;
@@ -76,6 +77,12 @@ $router->setBasePath(Env::required('API_BASE_PATH'));
 $router->get('/health', [HealthController::class, 'check']);
 $router->get('/dashboard/summary', [DashboardController::class, 'summary']);
 $router->get('/dashboard/fix-queue', [DashboardController::class, 'fixQueue']);
+// Public, unauthenticated bug-report intake from game pages (guarded by BugReportGuard).
+$router->get('/bug-reports/challenge', [BugReportController::class, 'challenge']);
+$router->post('/bug-reports', [BugReportController::class, 'submit']);
+// Admin-only moderation.
+$router->get('/bug-reports', [BugReportController::class, 'index']);
+$router->patch('/bug-reports/{id}', [BugReportController::class, 'moderate']);
 $router->get('/deployments', [DeploymentController::class, 'index']);
 $router->post('/deployments/publish', [DeploymentController::class, 'publish']);
 $router->post('/import/html-summary', [ImportController::class, 'htmlSummary']);

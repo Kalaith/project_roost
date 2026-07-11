@@ -76,6 +76,43 @@ final class SmokeTest extends TestCase
         self::assertSame('Adventure Story Generator', $batch['records'][0]['profile']['display_name']);
     }
 
+    public function testGamesImportSeparatesCatalogDescriptionFromReviewNotes(): void
+    {
+        $html = <<<'HTML'
+        <script id="projectData" type="application/json">
+        [
+          {
+            "project": "adventurer_guild",
+            "shape": "Frontend + backend",
+            "overall": 8.6,
+            "frontend": 9.4,
+            "backend": 8.3,
+            "security": 8.2,
+            "risk": "no",
+            "riskLabel": "Server-approved only",
+            "summary": "Retested after hardening: backend now has composer/test/cs scripts and guest linking validates a signed guest token."
+          }
+        ]
+        </script>
+        HTML;
+
+        $_ENV['GAME_APPS_SUMMARY_PATH'] = __FILE__;
+        $batch = (new SummaryImportService())->parse('games', $html);
+
+        self::assertCount(1, $batch['records']);
+        $record = $batch['records'][0];
+
+        self::assertSame('adventurer_guild', $record['project']['title']);
+        self::assertSame('Adventurers Guild', $record['profile']['display_name']);
+        self::assertSame(
+            'Fantasy guild management simulation about leading an adventurer guild across generations, relationships, territories, and legacy systems.',
+            $record['project']['description']
+        );
+        self::assertSame($record['project']['description'], $record['profile']['summary']);
+        self::assertStringStartsWith('Retested after hardening:', $record['review']['notes']);
+        self::assertStringNotContainsString('Retested after hardening:', $record['project']['description']);
+    }
+
     public function testSharedProjectReconciliationProfilesFrontpageOnlyRows(): void
     {
         $profile = SharedProjectReconciliationService::profileFromProject([

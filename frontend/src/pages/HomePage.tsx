@@ -9,6 +9,9 @@ import {
   updateProject,
   updateTask,
 } from "../api/projects";
+import { getBugReports, moderateBugReport } from "../api/bugReports";
+import type { BugReportModeration } from "../api/bugReports";
+import { BugReportQueue } from "../components/BugReportQueue";
 import { DashboardCards } from "../components/DashboardCards";
 import { DeploymentPanel } from "../components/DeploymentPanel";
 import { FiltersBar } from "../components/FiltersBar";
@@ -19,6 +22,7 @@ import { ProjectTable } from "../components/ProjectTable";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useProjectFilters } from "../stores/useProjectFilters";
 import type {
+  BugReport,
   DashboardSummary,
   DeploymentRecord,
   Project,
@@ -73,6 +77,7 @@ export const HomePage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
+  const [bugReports, setBugReports] = useState<BugReport[]>([]);
   const [selectedDeployments, setSelectedDeployments] = useState<
     DeploymentRecord[]
   >([]);
@@ -91,6 +96,40 @@ export const HomePage: React.FC = () => {
   const [error, setError] = useState("");
   const [discoveryMessage, setDiscoveryMessage] = useState("");
   const authUserLabel = getUserLabel(authUser);
+  const isAdmin = (authUser?.role ?? "").toLowerCase() === "admin";
+
+  const loadBugReports = useCallback(async () => {
+    if (!isAdmin) {
+      setBugReports([]);
+      return;
+    }
+
+    try {
+      setBugReports(await getBugReports("new"));
+    } catch {
+      // Bug reports are admin-only; ignore failures so the rest of the dashboard
+      // still renders for non-admin viewers.
+      setBugReports([]);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    void loadBugReports();
+  }, [loadBugReports]);
+
+  const moderateReport = async (id: number, payload: BugReportModeration) => {
+    setError("");
+
+    try {
+      await moderateBugReport(id, payload);
+      setBugReports((current) => current.filter((report) => report.id !== id));
+      if (payload.action === "approve") {
+        await loadData();
+      }
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -312,6 +351,12 @@ export const HomePage: React.FC = () => {
         <FixQueue tasks={tasks} onTaskStatusChange={changeTaskStatus} />
         <DeploymentPanel deployments={summary?.deployments} />
       </div>
+
+      {isAdmin ? (
+        <div className="lower-grid">
+          <BugReportQueue reports={bugReports} onModerate={moderateReport} />
+        </div>
+      ) : null}
     </main>
   );
 };
