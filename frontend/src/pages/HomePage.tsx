@@ -337,6 +337,14 @@ export const HomePage: React.FC = () => {
           <h1>Project Roost</h1>
         </div>
         <div className="header-controls">
+          <a
+            className="home-link"
+            href="/"
+            title="Back to WebHatchery home"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Home</span>
+          </a>
           <div
             className="header-status"
             title={authUserLabel ? `Signed in as ${authUserLabel}` : undefined}
