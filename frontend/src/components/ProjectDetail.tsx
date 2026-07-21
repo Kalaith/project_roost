@@ -45,6 +45,7 @@ interface DetailForm {
   severity: string;
   show_on_homepage: boolean;
   hidden: boolean;
+  archived: boolean;
 }
 
 const emptyForm: DetailForm = {
@@ -63,6 +64,7 @@ const emptyForm: DetailForm = {
   severity: "low",
   show_on_homepage: true,
   hidden: false,
+  archived: false,
 };
 
 const formFromProject = (project: Project): DetailForm => ({
@@ -81,6 +83,7 @@ const formFromProject = (project: Project): DetailForm => ({
   severity: project.risk.severity,
   show_on_homepage: project.show_on_homepage,
   hidden: project.hidden,
+  archived: project.archived,
 });
 
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
@@ -141,6 +144,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       repository_url: form.repository_url.trim() || null,
       show_on_homepage: form.show_on_homepage,
       hidden: form.hidden,
+      archived: form.archived,
       risk: {
         severity: form.severity,
       },
@@ -228,9 +232,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               <strong>
                 {project.hidden
                   ? "Hidden"
-                  : project.show_on_homepage
-                    ? "On frontpage"
-                    : "Listed"}
+                  : project.archived
+                    ? "Archived"
+                    : project.show_on_homepage
+                      ? "On frontpage"
+                      : "Listed"}
               </strong>
             </div>
           </div>
@@ -378,6 +384,14 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             }
           />
           <span>Show on Frontpage</span>
+        </label>
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={form.archived}
+            onChange={(event) => updateField("archived", event.target.checked)}
+          />
+          <span>Archived</span>
         </label>
         <label className="checkbox-field">
           <input

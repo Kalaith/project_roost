@@ -63,6 +63,7 @@ export interface Project {
   repository_url: string | null;
   hidden: boolean;
   show_on_homepage: boolean;
+  archived: boolean;
   created_at: string | null;
   updated_at: string | null;
   latest_review: ReviewSnapshot | null;
@@ -172,6 +173,7 @@ export interface ProjectUpdatePayload {
   repository_url?: string | null;
   hidden?: boolean;
   show_on_homepage?: boolean;
+  archived?: boolean;
   risk?: Partial<RiskAssessment>;
 }
 

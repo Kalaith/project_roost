@@ -385,6 +385,7 @@ final class ProjectRepository
                 pr.summary,
                 pr.preview_url,
                 pr.production_url,
+                pr.archived,
                 pr.source AS profile_source,
                 latest.id AS review_id,
                 latest.reviewed_at,
@@ -438,6 +439,7 @@ final class ProjectRepository
             'repository_url' => $repository['repository_url'],
             'hidden' => (bool) $row['hidden'],
             'show_on_homepage' => (bool) $row['show_on_homepage'],
+            'archived' => (bool) ($row['archived'] ?? false),
             'created_at' => $row['project_created_at'],
             'updated_at' => $row['project_updated_at'],
             'latest_review' => $row['review_id'] !== null ? [
@@ -677,6 +679,7 @@ final class ProjectRepository
             'summary' => $profile['summary'] ?? null,
             'preview_url' => $profile['preview_url'] ?? null,
             'production_url' => $profile['production_url'] ?? null,
+            'archived' => (int) ($profile['archived'] ?? 0),
             'source' => $profile['source'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
@@ -684,9 +687,9 @@ final class ProjectRepository
 
         $sql = '
             INSERT INTO ' . $this->q(self::PROFILES_TABLE) . '
-                (project_id, slug, display_name, category, shape, summary, preview_url, production_url, source, created_at, updated_at)
+                (project_id, slug, display_name, category, shape, summary, preview_url, production_url, archived, source, created_at, updated_at)
             VALUES
-                (:project_id, :slug, :display_name, :category, :shape, :summary, :preview_url, :production_url, :source, :created_at, :updated_at)
+                (:project_id, :slug, :display_name, :category, :shape, :summary, :preview_url, :production_url, :archived, :source, :created_at, :updated_at)
             ON DUPLICATE KEY UPDATE
                 slug = VALUES(slug),
                 display_name = VALUES(display_name),
@@ -695,6 +698,7 @@ final class ProjectRepository
                 summary = VALUES(summary),
                 preview_url = VALUES(preview_url),
                 production_url = VALUES(production_url),
+                archived = VALUES(archived),
                 source = VALUES(source),
                 updated_at = VALUES(updated_at)
         ';
@@ -863,6 +867,7 @@ final class ProjectRepository
                 'summary' => $summary,
                 'preview_url' => $payload['preview_url'] ?? null,
                 'production_url' => $payload['production_url'] ?? null,
+                'archived' => (int) (bool) ($payload['archived'] ?? false),
                 'source' => 'manual',
             ],
             'risk' => isset($payload['risk']) && is_array($payload['risk']) ? $payload['risk'] : null,
@@ -901,11 +906,12 @@ final class ProjectRepository
     private function profileUpdates(array $payload): array
     {
         $updates = [];
-        foreach (['slug', 'display_name', 'category', 'shape', 'summary', 'preview_url', 'production_url'] as $field) {
+        foreach (['slug', 'display_name', 'category', 'shape', 'summary', 'preview_url', 'production_url', 'archived'] as $field) {
             if (array_key_exists($field, $payload)) {
                 $updates[$field] = match ($field) {
                     'slug' => $this->slug((string) $payload[$field]),
                     'display_name' => trim((string) $payload[$field]) ?: null,
+                    'archived' => (int) (bool) $payload[$field],
                     default => $payload[$field],
                 };
             }

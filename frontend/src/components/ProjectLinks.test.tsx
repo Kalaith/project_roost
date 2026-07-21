@@ -27,6 +27,7 @@ const project: Project = {
   repository_url: null,
   hidden: false,
   show_on_homepage: true,
+  archived: false,
   created_at: null,
   updated_at: null,
   latest_review: null,
