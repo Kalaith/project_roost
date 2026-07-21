@@ -77,6 +77,37 @@ final class ProjectController
         $response->success(['project' => $project]);
     }
 
+    /**
+     * Bulk description-detail update pushed by the sync-descriptions publisher.
+     * Authenticated with the shared publish token (same as /deployments/publish)
+     * so it can run without an admin session. Body: { "projects": [ { slug,
+     * description, display_name? }, ... ] } (a bare array is also accepted).
+     */
+    public function details(Request $request, Response $response): void
+    {
+        try {
+            $this->auth->requireAdminOrPublishToken($request);
+        } catch (AuthException $exception) {
+            $response->error($exception->getMessage(), $exception->statusCode(), $exception->extra());
+            return;
+        }
+
+        $body = $request->all();
+        $items = $body['projects'] ?? $body;
+        if (!is_array($items) || $items === []) {
+            $response->error('Provide a non-empty list of project descriptions.', 422);
+            return;
+        }
+
+        $result = $this->projects->updateDetailsBySlug(array_values($items));
+
+        $response->success([
+            'updated' => $result['updated'],
+            'updated_count' => count($result['updated']),
+            'skipped' => $result['skipped'],
+        ]);
+    }
+
     public function destroy(Request $request, Response $response): void
     {
         if (!$this->requireAdmin($request, $response)) {

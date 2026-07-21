@@ -112,6 +112,90 @@ final class ProjectRepository
         return $this->getProject((string) $projectId);
     }
 
+    /**
+     * Apply per-project catalog descriptions pushed from each project's
+     * project_page.json (falling back to a rust game_page.json) by the
+     * sync-descriptions publisher. This is a description-only detail update:
+     * it authoritatively rewrites projects.description and the profile summary
+     * for matched projects and never creates new ones. Matching is by profile
+     * slug first, then by the shared projects title/path.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array{updated: array<int, string>, skipped: array<int, array{slug: string, reason: string}>}
+     */
+    public function updateDetailsBySlug(array $items): array
+    {
+        $updated = [];
+        $skipped = [];
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $slug = $this->slug((string) ($item['slug'] ?? ''));
+            $description = trim((string) ($item['description'] ?? ''));
+            $displayName = trim((string) ($item['display_name'] ?? ''));
+
+            if ($slug === '' || $description === '') {
+                $skipped[] = ['slug' => $slug, 'reason' => 'missing slug or description'];
+                continue;
+            }
+
+            $projectId = $this->projectIdBySlug($slug) ?? $this->projectIdByPathOrTitle('', $slug);
+            if ($projectId === null) {
+                $skipped[] = ['slug' => $slug, 'reason' => 'no matching project'];
+                continue;
+            }
+
+            $this->db->beginTransaction();
+            try {
+                $now = date('Y-m-d H:i:s');
+
+                $statement = $this->db->prepare(
+                    'UPDATE ' . $this->projectTable() . '
+                    SET description = :description, updated_at = :updated_at
+                    WHERE id = :id'
+                );
+                $statement->execute(['description' => $description, 'updated_at' => $now, 'id' => $projectId]);
+
+                $this->updateProfileDetails($projectId, $description, $displayName, $now);
+
+                $this->db->commit();
+            } catch (\Throwable $exception) {
+                $this->db->rollBack();
+                throw $exception;
+            }
+
+            $updated[] = $slug;
+        }
+
+        return ['updated' => $updated, 'skipped' => $skipped];
+    }
+
+    private function updateProfileDetails(int $projectId, string $summary, string $displayName, string $now): void
+    {
+        $exists = $this->db->prepare('SELECT 1 FROM ' . $this->q(self::PROFILES_TABLE) . ' WHERE project_id = :project_id');
+        $exists->execute(['project_id' => $projectId]);
+        if ($exists->fetchColumn() === false) {
+            // No profile row yet; the projects.description update above is enough,
+            // since the catalog display falls back to description when summary is empty.
+            return;
+        }
+
+        $assignments = ['summary = :summary', 'updated_at = :updated_at'];
+        $params = ['summary' => $summary, 'updated_at' => $now, 'project_id' => $projectId];
+        if ($displayName !== '') {
+            $assignments[] = 'display_name = :display_name';
+            $params['display_name'] = $displayName;
+        }
+
+        $statement = $this->db->prepare(
+            'UPDATE ' . $this->q(self::PROFILES_TABLE) . ' SET ' . implode(', ', $assignments) . ' WHERE project_id = :project_id'
+        );
+        $statement->execute($params);
+    }
+
     public function deleteProject(string $id): bool
     {
         $projectId = $this->resolveProjectId($id);
@@ -587,11 +671,15 @@ final class ProjectRepository
 
         if ($projectId === null) {
             $projectId = $this->insertProject($record['project']);
+            $this->upsertProfile($projectId, $record['profile']);
         } else {
             $this->updateProjectRow($projectId, $this->importProjectUpdates($record['project']));
+            // Preserve any existing profile summary. Descriptions are owned by each
+            // project's project_page.json and pushed via updateDetailsBySlug(); the
+            // summary-report import must not clobber them on re-publish. On first
+            // insert the report summary still seeds the profile above.
+            $this->upsertProfile($projectId, $this->preserveProfileSummary($projectId, $record['profile']));
         }
-
-        $this->upsertProfile($projectId, $record['profile']);
 
         return $projectId;
     }
@@ -603,7 +691,24 @@ final class ProjectRepository
             unset($updates['repository_type'], $updates['repository_url']);
         }
 
+        // The catalog description is owned per-project (project_page.json →
+        // updateDetailsBySlug); the report import refreshes scores/risk/status only.
+        unset($updates['description']);
+
         return $updates;
+    }
+
+    private function preserveProfileSummary(int $projectId, array $profile): array
+    {
+        $statement = $this->db->prepare('SELECT summary FROM ' . $this->q(self::PROFILES_TABLE) . ' WHERE project_id = :project_id');
+        $statement->execute(['project_id' => $projectId]);
+        $existing = $statement->fetchColumn();
+
+        if ($existing !== false && trim((string) $existing) !== '') {
+            $profile['summary'] = (string) $existing;
+        }
+
+        return $profile;
     }
 
     private function insertProject(array $project): int

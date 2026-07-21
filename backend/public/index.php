@@ -88,6 +88,7 @@ $router->post('/deployments/publish', [DeploymentController::class, 'publish']);
 $router->post('/import/html-summary', [ImportController::class, 'htmlSummary']);
 $router->get('/projects', [ProjectController::class, 'index']);
 $router->post('/projects', [ProjectController::class, 'store']);
+$router->post('/projects/details', [ProjectController::class, 'details']);
 $router->get('/projects/discover', [ProjectController::class, 'discover']);
 $router->get('/projects/{id}', [ProjectController::class, 'show']);
 $router->patch('/projects/{id}', [ProjectController::class, 'update']);
