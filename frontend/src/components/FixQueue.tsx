@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import type { ProjectTask } from "../types";
 
 interface FixQueueProps {
   tasks: ProjectTask[];
   onTaskStatusChange: (id: number, status: string) => Promise<void>;
 }
+
+const PAGE_SIZE = 10;
 
 const priorityTone = (priority: string): string => {
   switch (priority) {
@@ -20,14 +22,29 @@ const priorityTone = (priority: string): string => {
 export const FixQueue: React.FC<FixQueueProps> = ({
   tasks,
   onTaskStatusChange,
-}) => (
-  <section className="panel queue-panel" aria-label="Fix queue">
-    <div className="panel-header">
-      <h2>Fix Queue</h2>
-      <span>{tasks.length} open</span>
-    </div>
-    <div className="task-stack">
-      {tasks.slice(0, 10).map((task) => (
+}) => {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reset paging when the underlying task list changes (filters, refresh, etc.).
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [tasks]);
+
+  const visibleTasks = tasks.slice(0, visibleCount);
+  const remaining = tasks.length - visibleTasks.length;
+
+  return (
+    <section className="panel queue-panel" aria-label="Fix queue">
+      <div className="panel-header">
+        <h2>Fix Queue</h2>
+        <span>
+          {tasks.length === 0
+            ? "0 open"
+            : `showing ${visibleTasks.length} of ${tasks.length}`}
+        </span>
+      </div>
+      <div className="task-stack">
+        {visibleTasks.map((task) => (
         <article key={task.id} className="task-item">
           <div className="task-item-header">
             <div>
@@ -82,9 +99,30 @@ export const FixQueue: React.FC<FixQueueProps> = ({
           </div>
         </article>
       ))}
-      {tasks.length === 0 ? (
-        <div className="empty-state">No open tasks.</div>
+        {tasks.length === 0 ? (
+          <div className="empty-state">No open tasks.</div>
+        ) : null}
+      </div>
+      {remaining > 0 ? (
+        <div className="queue-more">
+          <button
+            type="button"
+            className="button secondary"
+            onClick={() =>
+              setVisibleCount((current) => current + PAGE_SIZE)
+            }
+          >
+            Show more ({remaining} more)
+          </button>
+          <button
+            type="button"
+            className="button secondary small"
+            onClick={() => setVisibleCount(tasks.length)}
+          >
+            Show all
+          </button>
+        </div>
       ) : null}
-    </div>
-  </section>
-);
+    </section>
+  );
+};

@@ -1008,6 +1008,14 @@ a {
   gap: 10px;
 }
 
+.queue-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .deployment-stack {
   display: grid;
   gap: 10px;
