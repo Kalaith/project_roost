@@ -26,6 +26,9 @@ final class DeploymentRepository
     {
         $projectSlug = $this->slug((string) ($payload['project'] ?? $payload['project_slug'] ?? 'unknown_project'));
         $projectId = $this->ensureProjectProfile($projectSlug, $payload);
+        if (array_key_exists('archived', $payload)) {
+            $this->updateProfileArchived($projectId, (bool) $payload['archived']);
+        }
         $deployedAt = trim((string) ($payload['deployed_at'] ?? ''));
         if ($deployedAt === '') {
             $deployedAt = date('Y-m-d H:i:s');
@@ -184,6 +187,20 @@ final class DeploymentRepository
         $value = $statement->fetchColumn();
 
         return $value !== false ? (int) $value : null;
+    }
+
+    private function updateProfileArchived(int $projectId, bool $archived): void
+    {
+        $statement = $this->db->prepare(
+            'UPDATE ' . $this->q(self::PROFILES_TABLE) . '
+            SET archived = :archived, updated_at = :updated_at
+            WHERE project_id = :project_id'
+        );
+        $statement->execute([
+            'archived' => (int) $archived,
+            'updated_at' => date('Y-m-d H:i:s'),
+            'project_id' => $projectId,
+        ]);
     }
 
     private function projectHasProfile(int $projectId): bool
