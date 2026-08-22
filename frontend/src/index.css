@@ -252,6 +252,15 @@ a {
   border-color: var(--accent-border);
 }
 
+.home-brand-link {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.home-brand-link:hover {
+  color: var(--accent);
+}
+
 .error-banner {
   margin-bottom: 16px;
   border: 1px solid var(--danger-border);

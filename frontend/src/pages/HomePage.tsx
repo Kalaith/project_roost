@@ -24,6 +24,7 @@ import { MoonIcon, SunIcon } from "../components/icons";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useProjectFilters } from "../stores/useProjectFilters";
 import { useTheme } from "../stores/useTheme";
+import { currentWebhatcheryHomeUrl } from "../utils/siteLinks";
 import type {
   BugReport,
   DashboardSummary,
@@ -77,6 +78,7 @@ const getUserLabel = (user: User | null): string => {
 type TabId = "projects" | "queue" | "publish" | "reports";
 
 export const HomePage: React.FC = () => {
+  const webhatcheryHomeUrl = currentWebhatcheryHomeUrl();
   const { filters, setFilter, resetFilters } = useProjectFilters();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabId>("projects");
@@ -333,13 +335,19 @@ export const HomePage: React.FC = () => {
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <span className="eyebrow">WebHatchery</span>
+          <a
+            className="eyebrow home-brand-link"
+            href={webhatcheryHomeUrl}
+            title="Back to WebHatchery home"
+          >
+            WebHatchery
+          </a>
           <h1>Project Roost</h1>
         </div>
         <div className="header-controls">
           <a
             className="home-link"
-            href="/"
+            href={webhatcheryHomeUrl}
             title="Back to WebHatchery home"
           >
             <span aria-hidden="true">←</span>

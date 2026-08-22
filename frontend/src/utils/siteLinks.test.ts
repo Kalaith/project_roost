@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { currentSiteEnvironment, siteUrlFor } from "./siteLinks";
+import {
+  currentSiteEnvironment,
+  currentWebhatcheryHomeUrl,
+  siteUrlFor,
+  webhatcheryHomeUrl,
+} from "./siteLinks";
 
 const project = {
   slug: "project_roost",
@@ -64,5 +69,16 @@ describe("siteLinks", () => {
     expect(currentSiteEnvironment("webhatchery.au")).toBe("production");
     expect(currentSiteEnvironment("www.webhatchery.au")).toBe("production");
     expect(currentSiteEnvironment("127.0.0.1")).toBe("preview");
+  });
+
+  it("builds the main-site home URL for each environment", () => {
+    expect(webhatcheryHomeUrl("preview")).toBe("http://127.0.0.1/");
+    expect(webhatcheryHomeUrl("production")).toBe("https://webhatchery.au/");
+    expect(currentWebhatcheryHomeUrl("127.0.0.1")).toBe(
+      "http://127.0.0.1/",
+    );
+    expect(currentWebhatcheryHomeUrl("webhatchery.au")).toBe(
+      "https://webhatchery.au/",
+    );
   });
 });

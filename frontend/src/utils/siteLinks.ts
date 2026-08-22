@@ -7,6 +7,10 @@ const siteBases: Record<SiteEnvironment, string> = {
   production: "https://webhatchery.au",
 };
 
+export const webhatcheryHomeUrl = (
+  environment: SiteEnvironment,
+): string => `${siteBases[environment]}/`;
+
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 
 const slugPath = (slug: string): string => slug.replace(/^\/+|\/+$/g, "");
@@ -50,3 +54,7 @@ export const currentSiteEnvironment = (
     ? "production"
     : "preview";
 };
+
+export const currentWebhatcheryHomeUrl = (
+  hostname = window.location.hostname,
+): string => webhatcheryHomeUrl(currentSiteEnvironment(hostname));
