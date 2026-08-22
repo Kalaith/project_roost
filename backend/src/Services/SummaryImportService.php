@@ -138,7 +138,7 @@ final class SummaryImportService
             $records[] = [
                 'project' => [
                     'title' => $slug,
-                    'path' => 'H:\\WebHatchery\\apps\\' . $slug,
+                    'path' => $this->appProjectPath($slug),
                     'description' => $summary,
                     'stage' => $this->stageFromStatus($reportStatus),
                     'status' => $this->projectStatusFromReport($reportStatus),
@@ -523,6 +523,49 @@ final class SummaryImportService
     private function appsReportPath(): string
     {
         return Env::required('APPS_SUMMARY_PATH');
+    }
+
+    private function appProjectPath(string $slug): string
+    {
+        $overrides = $this->appProjectPathOverrides();
+        if (isset($overrides[$slug])) {
+            return $overrides[$slug];
+        }
+
+        return 'H:\\WebHatchery\\apps\\' . $slug;
+    }
+
+    /**
+     * Parse project-specific source paths from the local/production environment.
+     *
+     * Format: slug=absolute-path;another_slug=absolute-path
+     * This keeps summary imports portable when an app is stored outside the
+     * default apps workspace.
+     *
+     * @return array<string, string>
+     */
+    private function appProjectPathOverrides(): array
+    {
+        $raw = Env::optional('APPS_PROJECT_PATH_OVERRIDES');
+        if ($raw === '') {
+            return [];
+        }
+
+        $overrides = [];
+        foreach (preg_split('/\\s*;\\s*/', $raw) ?: [] as $entry) {
+            $separator = strpos($entry, '=');
+            if ($separator === false) {
+                continue;
+            }
+
+            $slug = strtolower(trim(substr($entry, 0, $separator)));
+            $path = trim(substr($entry, $separator + 1));
+            if ($slug !== '' && $path !== '') {
+                $overrides[$slug] = $path;
+            }
+        }
+
+        return $overrides;
     }
 
     private function gamesReportPath(): string

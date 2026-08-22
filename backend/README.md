@@ -18,6 +18,7 @@ PHP API for Project Roost. It stores canonical project rows in the shared `proje
 - `PUBLISH_EVENT_TOKEN`
 - `WEBHATCHERY_LOGIN_URL`
 - `APPS_SUMMARY_PATH`
+- `APPS_PROJECT_PATH_OVERRIDES` (optional semicolon-separated `slug=absolute-path` entries for apps stored outside the default apps workspace)
 - `GAME_APPS_SUMMARY_PATH`
 - `RUST_GAMES_ROOT`
 
@@ -42,6 +43,7 @@ SOURCE backend/database/004_clean_shared_project_catalog.sql;
 SOURCE backend/database/005_create_project_roost_bug_reports.sql;
 SOURCE backend/database/006_add_project_roost_archived.sql;
 SOURCE backend/database/007_remove_retired_auth_portal.sql;
+SOURCE backend/database/008_move_comfyui_to_local.sql;
 ```
 
 ## Manual Seed Export
