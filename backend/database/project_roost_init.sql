@@ -807,6 +807,24 @@ INSERT INTO `project_roost_profiles` (`project_id`, `slug`, `display_name`, `cat
 INSERT INTO `project_roost_review_snapshots` (`project_id`, `reviewed_at`, `source`, `source_hash`, `frontend_score`, `backend_score`, `security_score`, `overall_score`, `notes`, `priority_fix`, `created_at`) VALUES (@project_id, '2026-05-18 15:17:08', 'rust-games-summary', '57dd5dc62de10f528635ffad6ed91aca01f9b0c262409951b9a550116fbfa200', 8.8, NULL, 8, 8.5, 'Rust/WebGL inventory; index present; publish script present; README present. The Lewd Tower is a single-player adult management game about turning a ruined keep above a cursed tower into a growing monster-girl business. You discover that the tower can produce eggs, hatch loyal girls through a hidden chamber, and feed a cycle of brothel income, tower expeditions, debt pressure, and roster gro...', '', NOW()) ON DUPLICATE KEY UPDATE `reviewed_at` = VALUES(`reviewed_at`), `frontend_score` = VALUES(`frontend_score`), `backend_score` = VALUES(`backend_score`), `security_score` = VALUES(`security_score`), `overall_score` = VALUES(`overall_score`), `notes` = VALUES(`notes`), `priority_fix` = VALUES(`priority_fix`);
 INSERT INTO `project_roost_risk_assessments` (`project_id`, `severity`, `auth_risk`, `data_risk`, `env_risk`, `ownership_risk`, `notes`, `created_at`, `updated_at`) VALUES (@project_id, 'low', 'not applicable to static Rust game', 'client-local game state', 'standard static deploy', 'standard', 'Rust/WebGL inventory; index present; publish script present; README present. The Lewd Tower is a single-player adult management game about turning a ruined keep above a cursed tower into a growing monster-girl business. You discover that the tower can produce eggs, hatch loyal girls through a hidden chamber, and feed a cycle of brothel income, tower expeditions, debt pressure, and roster gro...', NOW(), NOW()) ON DUPLICATE KEY UPDATE `severity` = VALUES(`severity`), `auth_risk` = VALUES(`auth_risk`), `data_risk` = VALUES(`data_risk`), `env_risk` = VALUES(`env_risk`), `ownership_risk` = VALUES(`ownership_risk`), `notes` = VALUES(`notes`), `updated_at` = NOW();
 INSERT INTO `project_roost_imports` (`source`, `source_hash`, `imported_at`, `project_count`, `review_count`, `task_count`, `created_at`) VALUES ('rust-games-summary', '57dd5dc62de10f528635ffad6ed91aca01f9b0c262409951b9a550116fbfa200', NOW(), 24, 24, 1, NOW()) ON DUPLICATE KEY UPDATE `imported_at` = VALUES(`imported_at`), `project_count` = VALUES(`project_count`), `review_count` = VALUES(`review_count`), `task_count` = VALUES(`task_count`);
+
+-- 009_hide_merged_monster_maker.sql
+UPDATE `projects`
+SET `hidden` = 1,
+    `show_on_homepage` = 0,
+    `updated_at` = NOW()
+WHERE LOWER(REPLACE(REPLACE(TRIM(`title`), ' ', '_'), '-', '_')) = 'monster_maker'
+   OR LOWER(TRIM(BOTH '/' FROM REPLACE(`path`, CHAR(92), '/'))) LIKE '%/monster_maker'
+   OR LOWER(TRIM(BOTH '/' FROM REPLACE(`path`, CHAR(92), '/'))) LIKE '%/monster_maker/%';
+
+-- 010_replace_retired_wh_tracker.sql
+UPDATE `projects`
+SET `hidden` = 1,
+    `show_on_homepage` = 0,
+    `updated_at` = NOW()
+WHERE LOWER(REPLACE(REPLACE(TRIM(`title`), ' ', '_'), '-', '_')) = 'wh_tracker'
+   OR LOWER(TRIM(BOTH '/' FROM REPLACE(`path`, CHAR(92), '/'))) LIKE '%/wh_tracker'
+   OR LOWER(TRIM(BOTH '/' FROM REPLACE(`path`, CHAR(92), '/'))) LIKE '%/wh_tracker/%';
 COMMIT;
 
 -- -----------------------------------------------------------------------------

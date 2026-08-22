@@ -631,6 +631,10 @@ final class ProjectRepository
         $search = strtolower(trim((string) ($filters['search'] ?? '')));
 
         return array_values(array_filter($projects, function (array $project) use ($filters, $search): bool {
+            if ($project['hidden'] || $project['archived']) {
+                return false;
+            }
+
             if ($search !== '') {
                 $haystack = strtolower(implode(' ', [
                     $project['name'],

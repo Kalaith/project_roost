@@ -57,7 +57,8 @@ try {
 } catch (\Throwable $exception) {
     header('HTTP/1.1 500 Internal Server Error');
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => $exception->getMessage()]);
+    error_log('Project Roost configuration error: ' . $exception->getMessage());
+    echo json_encode(['success' => false, 'message' => 'The service is not configured correctly.']);
     exit(1);
 }
 
@@ -102,5 +103,6 @@ $router->patch('/tasks/{id}', [ProjectController::class, 'updateTask']);
 try {
     $router->handle();
 } catch (\Throwable $exception) {
-    (new Response())->error('Internal Server Error: ' . $exception->getMessage(), 500);
+    error_log('Project Roost unhandled exception: ' . $exception->getMessage());
+    (new Response())->error('Internal Server Error', 500);
 }

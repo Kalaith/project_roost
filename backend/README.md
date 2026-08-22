@@ -22,6 +22,11 @@ PHP API for Project Roost. It stores canonical project rows in the shared `proje
 - `GAME_APPS_SUMMARY_PATH`
 - `RUST_GAMES_ROOT`
 
+Project discovery is manifest-driven. The checked-in
+`backend/config/project-manifest.json` lists the approved project directories
+for each configured root; adding a directory to the filesystem does not make
+it eligible for reconciliation until the manifest is reviewed and updated.
+
 No endpoint uses local login or register flows. Mutating routes validate a bearer token and require an admin claim.
 The deployment and summary import endpoints also accept `PUBLISH_EVENT_TOKEN` through `X-Project-Roost-Publish-Token` so the shared publish script can record deploys and refresh rating snapshots from the current app, game, and RustGames inventories. Import preview remains admin-only.
 
@@ -44,6 +49,8 @@ SOURCE backend/database/005_create_project_roost_bug_reports.sql;
 SOURCE backend/database/006_add_project_roost_archived.sql;
 SOURCE backend/database/007_remove_retired_auth_portal.sql;
 SOURCE backend/database/008_move_comfyui_to_local.sql;
+SOURCE backend/database/009_hide_merged_monster_maker.sql;
+SOURCE backend/database/010_replace_retired_wh_tracker.sql;
 ```
 
 ## Manual Seed Export

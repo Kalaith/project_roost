@@ -1,41 +1,38 @@
-import axios from "axios";
+import { createApiClient, type QueryParams } from '@webhatchery/api-client';
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-if (!apiBaseUrl) {
-  throw new Error("VITE_API_BASE_URL environment variable is required.");
+type RequestConfig = { params?: QueryParams; headers?: HeadersInit };
+type ApiResponse<T> = { data: T; status: number };
+let tokenResolver: (() => string | null) | null = null;
+
+export function registerAuthTokenResolver(resolver: () => string | null): void {
+  tokenResolver = resolver;
 }
 
-const api = axios.create({
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+if (!apiBaseUrl) throw new Error('VITE_API_BASE_URL environment variable is required.');
+
+const sharedApi = createApiClient({
   baseURL: apiBaseUrl,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  preserveEnvelope: true,
+  tokenProvider: () => tokenResolver?.() ?? null,
 });
 
-let getAuthToken: (() => string | null) | null = null;
+const request = async <T>(method: string, endpoint: string, body?: unknown, config?: RequestConfig): Promise<ApiResponse<T>> => ({
+  data: await sharedApi.request<T>(endpoint, {
+    method,
+    body,
+    headers: config?.headers,
+    query: config?.params,
+  }),
+  status: 200,
+});
 
-export const registerAuthTokenResolver = (resolver: () => string | null) => {
-  getAuthToken = resolver;
+const api = {
+  get: <T>(endpoint: string, config?: RequestConfig) => request<T>('GET', endpoint, undefined, config),
+  post: <T>(endpoint: string, body?: unknown, config?: RequestConfig) => request<T>('POST', endpoint, body, config),
+  put: <T>(endpoint: string, body?: unknown, config?: RequestConfig) => request<T>('PUT', endpoint, body, config),
+  patch: <T>(endpoint: string, body?: unknown, config?: RequestConfig) => request<T>('PATCH', endpoint, body, config),
+  delete: <T>(endpoint: string, config?: RequestConfig) => request<T>('DELETE', endpoint, undefined, config),
 };
-
-api.interceptors.request.use((config) => {
-  const token = getAuthToken?.() ?? null;
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
-
-// A 401 from any route must NEVER clear the session or log the user out.
-// Project Roost renders public data even when unauthenticated, and the user's
-// identity is owned by the WebHatchery login — not by whether one API call was
-// authorized. Auth failures are propagated to the caller (which surfaces an
-// error) and the session is left untouched.
-api.interceptors.response.use(
-  (response) => response,
-  (error) => Promise.reject(error),
-);
 
 export default api;

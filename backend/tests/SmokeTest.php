@@ -16,6 +16,19 @@ final class SmokeTest extends TestCase
         self::assertTrue(true);
     }
 
+    public function testProductionProjectManifestIsValidJson(): void
+    {
+        $manifestPath = dirname(__DIR__) . '/config/project-manifest.json';
+        self::assertFileExists($manifestPath);
+
+        $contents = file_get_contents($manifestPath);
+        self::assertIsString($contents);
+        $manifest = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertIsArray($manifest);
+        self::assertIsArray($manifest['sources'] ?? null);
+    }
+
     public function testRustGamesImportParsesInventoryPayload(): void
     {
         $payload = json_encode([
@@ -161,6 +174,20 @@ final class SmokeTest extends TestCase
         ]);
 
         self::assertSame('writers_studio', $replacement);
+
+        $mergedReplacement = SharedProjectReconciliationService::replacementSlugForProject([
+            'title' => 'Monster Maker',
+            'path' => '/monster_maker/',
+        ]);
+
+        self::assertSame('dnd_sheet', $mergedReplacement);
+
+        $retiredReplacement = SharedProjectReconciliationService::replacementSlugForProject([
+            'title' => 'WH Tracker',
+            'path' => 'apps/wh_tracker/frontend/',
+        ]);
+
+        self::assertSame('project_roost', $retiredReplacement);
     }
 
     public function testDiscoveryMapsRustGamesToGamesSubfolder(): void
@@ -176,6 +203,15 @@ final class SmokeTest extends TestCase
         mkdir($sampleRoot, 0777, true);
         file_put_contents($appsRoot . DIRECTORY_SEPARATOR . 'PROJECT_SUMMARY.html', '');
         file_put_contents($gamesRoot . DIRECTORY_SEPARATOR . 'PROJECT_SUMMARY.html', '');
+        $manifestPath = $root . DIRECTORY_SEPARATOR . 'project-manifest.json';
+        file_put_contents($manifestPath, (string) json_encode([
+            'version' => 1,
+            'sources' => [
+                'apps' => ['root_env' => 'APPS_SUMMARY_PATH', 'entries' => []],
+                'games' => ['root_env' => 'GAME_APPS_SUMMARY_PATH', 'entries' => []],
+                'rust-games' => ['root_env' => 'RUST_GAMES_ROOT', 'entries' => ['sample_game']],
+            ],
+        ], JSON_THROW_ON_ERROR));
         file_put_contents(
             $sampleRoot . DIRECTORY_SEPARATOR . 'Cargo.toml',
             "[package]\nname = \"sample_game\"\nversion = \"0.2.0\"\ndescription = \"A sample Rust game.\"\n"
@@ -187,7 +223,7 @@ final class SmokeTest extends TestCase
         $_ENV['RUST_GAMES_ROOT'] = $rustRoot;
 
         try {
-            $candidates = (new ProjectDiscoveryService())->discover([], ['source' => 'rust-games']);
+            $candidates = (new ProjectDiscoveryService($manifestPath))->discover([], ['source' => 'rust-games']);
 
             self::assertCount(1, $candidates);
             self::assertSame('rust_sample_game', $candidates[0]['name']);

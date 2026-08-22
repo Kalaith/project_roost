@@ -10,6 +10,7 @@ import type {
   ProjectUpdatePayload,
 } from "../types";
 import api from "./client";
+import type { QueryParams } from "@webhatchery/api-client";
 
 const unwrap = <T>(envelope: ApiEnvelope<T>): T => {
   if (!envelope.success || envelope.data === undefined) {
@@ -25,7 +26,7 @@ export const listProjects = async (
   const response = await api.get<ApiEnvelope<{ projects: Project[] }>>(
     "/projects",
     {
-      params: filters,
+      params: filters as unknown as QueryParams,
     },
   );
 

@@ -11,6 +11,10 @@ final class ProjectDiscoveryService
     private const PREVIEW_BASE_URL = 'http://127.0.0.1';
     private const PRODUCTION_BASE_URL = 'https://webhatchery.au';
 
+    public function __construct(private readonly ?string $manifestPath = null)
+    {
+    }
+
     /**
      * @param array<int, array<string, mixed>> $existingProjects
      * @param array<string, mixed> $filters
@@ -23,20 +27,30 @@ final class ProjectDiscoveryService
         $existingKeys = $this->existingKeys($existingProjects);
 
         $candidates = [];
-        foreach ($this->sourceRoots() as $source => $root) {
+        foreach ($this->manifestEntries() as $entry) {
+            $source = $entry['source'];
+            $root = $entry['root'];
             if (!$this->sourceAllowed($requestedSource, $source)) {
                 continue;
             }
 
-            foreach ($this->scanSource($source, $root) as $candidate) {
-                if ($this->isKnown($candidate, $existingKeys)) {
-                    continue;
-                }
+            $path = rtrim($root, '\\/') . DIRECTORY_SEPARATOR . $entry['name'];
+            if (!is_dir($path)) {
+                continue;
+            }
 
-                if ($search !== '' && !$this->matchesSearch($candidate, $search)) {
-                    continue;
-                }
+            $candidate = match ($source) {
+                'apps' => $this->appCandidate($entry['name'], $path),
+                'games' => $this->gameCandidate($entry['name'], $path),
+                'rust-games' => $this->rustGameCandidate($entry['name'], $path),
+                default => null,
+            };
 
+            if ($candidate === null || $this->isKnown($candidate, $existingKeys)) {
+                continue;
+            }
+
+            if ($search === '' || $this->matchesSearch($candidate, $search)) {
                 $candidates[] = $candidate;
             }
         }
@@ -54,67 +68,56 @@ final class ProjectDiscoveryService
     }
 
     /**
-     * @return array<string, string>
+     * Read the checked-in project manifest instead of discovering arbitrary
+     * directories. Paths remain environment-owned; the manifest owns the
+     * approved project names and therefore the reconciliation scope.
+     *
+     * @return array<int, array{source: string, root: string, name: string}>
      */
-    private function sourceRoots(): array
+    private function manifestEntries(): array
     {
-        $roots = [];
-
-        try {
-            $roots['apps'] = dirname(Env::required('APPS_SUMMARY_PATH'));
-        } catch (\Throwable) {
+        $manifestPath = $this->manifestPath ?? (__DIR__ . '/../../config/project-manifest.json');
+        if (!is_file($manifestPath)) {
+            throw new RuntimeException('Project manifest is missing: ' . $manifestPath);
         }
 
-        try {
-            $roots['games'] = dirname(Env::required('GAME_APPS_SUMMARY_PATH'));
-        } catch (\Throwable) {
+        $manifestContents = file_get_contents($manifestPath);
+        $manifest = is_string($manifestContents)
+            ? json_decode($manifestContents, true)
+            : null;
+        if (!is_array($manifest) || !is_array($manifest['sources'] ?? null)) {
+            $reason = json_last_error_msg();
+            error_log(sprintf('Project Roost manifest parse failure path=%s error=%s', $manifestPath, $reason));
+            throw new RuntimeException('Project manifest is invalid.');
         }
 
-        try {
-            $roots['rust-games'] = Env::required('RUST_GAMES_ROOT');
-        } catch (\Throwable) {
-        }
-
-        return array_filter(
-            $roots,
-            static fn (string $root): bool => is_dir($root)
-        );
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function scanSource(string $source, string $root): array
-    {
-        $entries = scandir($root);
-        if ($entries === false) {
-            return [];
-        }
-
-        $candidates = [];
-        foreach ($entries as $entry) {
-            if ($this->shouldSkipEntry($entry)) {
+        $entries = [];
+        foreach ($manifest['sources'] as $source => $definition) {
+            if (!is_array($definition)) {
                 continue;
             }
 
-            $path = rtrim($root, '\\/') . DIRECTORY_SEPARATOR . $entry;
-            if (!is_dir($path)) {
+            $rootEnv = trim((string) ($definition['root_env'] ?? ''));
+            $names = $definition['entries'] ?? [];
+            if ($rootEnv === '' || !is_array($names)) {
                 continue;
             }
 
-            $candidate = match ($source) {
-                'apps' => $this->appCandidate($entry, $path),
-                'games' => $this->gameCandidate($entry, $path),
-                'rust-games' => $this->rustGameCandidate($entry, $path),
-                default => null,
-            };
+            try {
+                $root = Env::required($rootEnv);
+            } catch (\Throwable) {
+                continue;
+            }
 
-            if ($candidate !== null) {
-                $candidates[] = $candidate;
+            foreach ($names as $name) {
+                $name = trim((string) $name);
+                if ($name !== '') {
+                    $entries[] = ['source' => (string) $source, 'root' => $root, 'name' => $name];
+                }
             }
         }
 
-        return $candidates;
+        return $entries;
     }
 
     /**
@@ -317,22 +320,6 @@ final class ProjectDiscoveryService
     private function sourceAllowed(string $requestedSource, string $source): bool
     {
         return $requestedSource === '' || $requestedSource === 'all' || $requestedSource === $source;
-    }
-
-    private function shouldSkipEntry(string $entry): bool
-    {
-        if ($entry === '.' || $entry === '..' || str_starts_with($entry, '.')) {
-            return true;
-        }
-
-        return in_array(strtolower($entry), [
-            'archive',
-            'build',
-            'dist',
-            'node_modules',
-            'tools',
-            'vendor',
-        ], true);
     }
 
     /**

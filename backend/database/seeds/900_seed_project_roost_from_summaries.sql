@@ -539,4 +539,13 @@ INSERT INTO `project_roost_profiles` (`project_id`, `slug`, `display_name`, `cat
 INSERT INTO `project_roost_review_snapshots` (`project_id`, `reviewed_at`, `source`, `source_hash`, `frontend_score`, `backend_score`, `security_score`, `overall_score`, `notes`, `priority_fix`, `created_at`) VALUES (@project_id, '2026-06-14 00:17:56', 'rust-games-summary', 'c03e204cecf26b5d460cca94a98a3b5f6682ef1753dc0952f565532d3840f4a4', 8.8, NULL, 8, 8.5, 'Rust/WebGL inventory; index present; publish script present; README present. A Rust + Macroquad 3D cleanup prototype for Web Hatchery Games.', '', NOW()) ON DUPLICATE KEY UPDATE `reviewed_at` = VALUES(`reviewed_at`), `frontend_score` = VALUES(`frontend_score`), `backend_score` = VALUES(`backend_score`), `security_score` = VALUES(`security_score`), `overall_score` = VALUES(`overall_score`), `notes` = VALUES(`notes`), `priority_fix` = VALUES(`priority_fix`);
 INSERT INTO `project_roost_risk_assessments` (`project_id`, `severity`, `auth_risk`, `data_risk`, `env_risk`, `ownership_risk`, `notes`, `created_at`, `updated_at`) VALUES (@project_id, 'low', 'not applicable to static Rust game', 'client-local game state', 'standard static deploy', 'standard', 'Rust/WebGL inventory; index present; publish script present; README present. A Rust + Macroquad 3D cleanup prototype for Web Hatchery Games.', NOW(), NOW()) ON DUPLICATE KEY UPDATE `severity` = VALUES(`severity`), `auth_risk` = VALUES(`auth_risk`), `data_risk` = VALUES(`data_risk`), `env_risk` = VALUES(`env_risk`), `ownership_risk` = VALUES(`ownership_risk`), `notes` = VALUES(`notes`), `updated_at` = NOW();
 INSERT INTO `project_roost_imports` (`source`, `source_hash`, `imported_at`, `project_count`, `review_count`, `task_count`, `created_at`) VALUES ('rust-games-summary', 'c03e204cecf26b5d460cca94a98a3b5f6682ef1753dc0952f565532d3840f4a4', NOW(), 23, 23, 1, NOW()) ON DUPLICATE KEY UPDATE `imported_at` = VALUES(`imported_at`), `project_count` = VALUES(`project_count`), `review_count` = VALUES(`review_count`), `task_count` = VALUES(`task_count`);
+
+-- Hide the legacy Monster Maker row, which is now part of dnd_sheet.
+UPDATE `projects`
+SET `hidden` = 1,
+    `show_on_homepage` = 0,
+    `updated_at` = NOW()
+WHERE LOWER(REPLACE(REPLACE(TRIM(`title`), ' ', '_'), '-', '_')) = 'monster_maker'
+   OR LOWER(TRIM(BOTH '/' FROM REPLACE(`path`, CHAR(92), '/'))) LIKE '%/monster_maker'
+   OR LOWER(TRIM(BOTH '/' FROM REPLACE(`path`, CHAR(92), '/'))) LIKE '%/monster_maker/%';
 COMMIT;

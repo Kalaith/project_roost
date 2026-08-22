@@ -23,6 +23,8 @@ final class SharedProjectReconciliationService
 
     private const REPLACED_PROJECTS = [
         'litrpg_studio' => 'writers_studio',
+        'monster_maker' => 'dnd_sheet',
+        'wh_tracker' => 'project_roost',
     ];
 
     private readonly PDO $db;
