@@ -138,6 +138,21 @@ final class SmokeTest extends TestCase
         self::assertSame('https://webhatchery.au/gdd/space_sim/', $profile['production_url']);
     }
 
+    public function testSharedProjectReconciliationUsesGamesPathForRustSlug(): void
+    {
+        $profile = SharedProjectReconciliationService::profileFromProject([
+            'title' => 'Idle Hands',
+            'path' => '/rust_idle_hands/',
+            'description' => 'A Rust web game.',
+            'group_name' => 'games',
+        ]);
+
+        self::assertSame('rust_idle_hands', $profile['slug']);
+        self::assertSame('game', $profile['category']);
+        self::assertSame('http://127.0.0.1/games/idle_hands/', $profile['preview_url']);
+        self::assertSame('https://webhatchery.au/games/idle_hands/', $profile['production_url']);
+    }
+
     public function testSharedProjectReconciliationIdentifiesReplacedProjects(): void
     {
         $replacement = SharedProjectReconciliationService::replacementSlugForProject([

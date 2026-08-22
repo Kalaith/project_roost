@@ -86,7 +86,7 @@ final class SharedProjectReconciliationService
     {
         $slug = self::slugForProject($project);
         $category = self::categoryForGroup((string) ($project['group_name'] ?? 'other'));
-        $publicPath = self::publicPath((string) ($project['path'] ?? ''), $slug);
+        $publicPath = self::publicPath((string) ($project['path'] ?? ''), $slug, $category);
 
         return [
             'slug' => $slug,
@@ -328,7 +328,7 @@ final class SharedProjectReconciliationService
         return self::slug((string) end($parts));
     }
 
-    private static function publicPath(string $path, string $slug): string
+    private static function publicPath(string $path, string $slug, string $category): string
     {
         $trimmed = trim($path);
         if (preg_match('#^https?://#i', $trimmed) === 1) {
@@ -336,26 +336,41 @@ final class SharedProjectReconciliationService
         }
 
         $normalized = str_replace('\\', '/', $trimmed);
+        $parts = self::meaningfulPathParts($path);
+        $isRustGame = $category === 'rust-game'
+            || str_starts_with($slug, 'rust_')
+            || in_array('rustgames', $parts, true)
+            || in_array('rust_games', $parts, true);
+        $publicSlug = $isRustGame ? self::rustGameSlug($slug) : $slug;
+
         if (str_starts_with($normalized, '/')) {
+            if ($isRustGame) {
+                return '/games/' . $publicSlug . '/';
+            }
+
             return self::withTrailingSlash($normalized);
         }
 
-        $parts = self::meaningfulPathParts($path);
         foreach (['rustgames', 'rust_games', 'games'] as $root) {
             if (in_array($root, $parts, true)) {
-                return '/games/' . $slug . '/';
+                return '/games/' . $publicSlug . '/';
             }
         }
 
         if (in_array('gdd', $parts, true)) {
-            return '/gdd/' . $slug . '/';
+            return '/gdd/' . $publicSlug . '/';
         }
 
         if (in_array('web', $parts, true)) {
-            return '/web/' . $slug . '/';
+            return '/web/' . $publicSlug . '/';
         }
 
-        return '/' . $slug . '/';
+        return '/' . $publicSlug . '/';
+    }
+
+    private static function rustGameSlug(string $slug): string
+    {
+        return str_starts_with($slug, 'rust_') ? substr($slug, 5) : $slug;
     }
 
     /**
