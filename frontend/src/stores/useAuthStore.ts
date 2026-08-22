@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { registerAuthTokenResolver } from "../api/client";
+import { readFrontpageToken, readFrontpageUser } from "@webhatchery/auth-react";
 import type { User } from "../types";
 
 interface AuthState {
@@ -11,19 +11,14 @@ interface AuthState {
 }
 
 const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      token: null,
-      setAuth: (user, token) => set({ user, token }),
-      logout: () => set({ user: null, token: null }),
-    }),
-    {
-      name: "auth-storage",
-    },
-  ),
+  (set) => ({
+    user: readFrontpageUser() as User | null,
+    token: readFrontpageToken(),
+    setAuth: (user, token) => set({ user, token }),
+    logout: () => set({ user: null, token: null }),
+  }),
 );
 
-registerAuthTokenResolver(() => useAuthStore.getState().token);
+registerAuthTokenResolver(() => useAuthStore.getState().token ?? readFrontpageToken());
 
 export { useAuthStore };
