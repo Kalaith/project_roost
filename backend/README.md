@@ -37,6 +37,11 @@ Manual equivalent:
 ```sql
 SOURCE backend/database/001_create_project_roost_tables.sql;
 SOURCE backend/database/002_create_project_roost_deployments.sql;
+SOURCE backend/database/003_add_project_roost_display_name.sql;
+SOURCE backend/database/004_clean_shared_project_catalog.sql;
+SOURCE backend/database/005_create_project_roost_bug_reports.sql;
+SOURCE backend/database/006_add_project_roost_archived.sql;
+SOURCE backend/database/007_remove_retired_auth_portal.sql;
 ```
 
 ## Manual Seed Export
