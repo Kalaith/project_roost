@@ -26,6 +26,7 @@ final class DeploymentRepository
     {
         $projectSlug = $this->slug((string) ($payload['project'] ?? $payload['project_slug'] ?? 'unknown_project'));
         $projectId = $this->ensureProjectProfile($projectSlug, $payload);
+        $this->updateProfileDeploymentUrl($projectId, $projectSlug, $payload);
         if (array_key_exists('archived', $payload)) {
             $this->updateProfileArchived($projectId, (bool) $payload['archived']);
         }
@@ -203,6 +204,38 @@ final class DeploymentRepository
         ]);
     }
 
+    private function updateProfileDeploymentUrl(int $projectId, string $slug, array $payload): void
+    {
+        $environment = $this->clean((string) ($payload['environment'] ?? 'preview'), 50);
+        $sourcePath = $this->nullableString($payload['source_path'] ?? null, 500);
+        $isRustGame = $this->isRustGame($slug, $sourcePath);
+
+        if ($environment === 'preview') {
+            $column = 'preview_url';
+            $url = $this->previewUrlFromSlug($slug, $isRustGame);
+        } elseif ($environment === 'production' || $environment === 'local_production') {
+            $column = 'production_url';
+            $url = $this->productionUrlFromRemotePath(
+                $payload['remote_path'] ?? null,
+                $slug,
+                $isRustGame
+            );
+        } else {
+            return;
+        }
+
+        $statement = $this->db->prepare(
+            'UPDATE ' . $this->q(self::PROFILES_TABLE) . '
+            SET ' . $column . ' = :url, updated_at = :updated_at
+            WHERE project_id = :project_id'
+        );
+        $statement->execute([
+            'url' => $url,
+            'updated_at' => date('Y-m-d H:i:s'),
+            'project_id' => $projectId,
+        ]);
+    }
+
     private function projectHasProfile(int $projectId): bool
     {
         $statement = $this->db->prepare('SELECT 1 FROM ' . $this->q(self::PROFILES_TABLE) . ' WHERE project_id = :project_id');
@@ -287,8 +320,12 @@ final class DeploymentRepository
             'category' => $category,
             'shape' => $category === 'rust-game' ? 'rust+webgl' : ($hasBackend ? 'frontend+backend' : 'frontend-only'),
             'summary' => $displayName . ' is a WebHatchery project deployed through the shared publisher.',
-            'preview_url' => 'http://127.0.0.1/' . $this->publicPathFromSlug($slug) . '/',
-            'production_url' => $this->productionUrlFromRemotePath($payload['remote_path'] ?? null, $slug),
+            'preview_url' => $this->previewUrlFromSlug($slug, $this->isRustGame($slug, $sourcePath)),
+            'production_url' => $this->productionUrlFromRemotePath(
+                $payload['remote_path'] ?? null,
+                $slug,
+                $this->isRustGame($slug, $sourcePath)
+            ),
             'group_name' => $this->groupNameForCategory($category),
         ];
     }
@@ -351,16 +388,32 @@ final class DeploymentRepository
         return str_starts_with($slug, 'rust_') ? substr($slug, 5) : $slug;
     }
 
-    private function productionUrlFromRemotePath(mixed $remotePath, string $slug): string
+    private function previewUrlFromSlug(string $slug, bool $isRustGame): string
+    {
+        $path = $isRustGame ? 'games/' . $this->publicPathFromSlug($slug) : $this->publicPathFromSlug($slug);
+
+        return 'http://127.0.0.1/' . $path . '/';
+    }
+
+    private function productionUrlFromRemotePath(mixed $remotePath, string $slug, bool $isRustGame): string
     {
         $path = trim(str_replace('\\', '/', (string) $remotePath));
         $path = preg_replace('#^/public_html/?#', '/', $path) ?? '';
         $path = trim($path, '/');
-        if ($path === '') {
-            $path = $this->publicPathFromSlug($slug);
+        if ($path === '' || ($isRustGame && !str_starts_with($path, 'games/'))) {
+            $path = $isRustGame
+                ? 'games/' . $this->publicPathFromSlug($slug)
+                : $this->publicPathFromSlug($slug);
         }
 
         return 'https://webhatchery.au/' . $path . '/';
+    }
+
+    private function isRustGame(string $slug, ?string $sourcePath): bool
+    {
+        $normalizedSource = strtolower(str_replace('/', '\\', (string) $sourcePath));
+
+        return str_starts_with($slug, 'rust_') || str_contains($normalizedSource, '\\rustgames\\');
     }
 
     private function row(array|false $row): array

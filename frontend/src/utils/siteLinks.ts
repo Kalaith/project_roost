@@ -14,6 +14,10 @@ const slugPath = (slug: string): string => slug.replace(/^\/+|\/+$/g, "");
 const rustGamePath = (slug: string): string =>
   slugPath(slug).replace(/^rust_/, "");
 
+const isRustGame = (project: Pick<Project, "slug" | "category">): boolean =>
+  project.category === "rust-game" ||
+  slugPath(project.slug).startsWith("rust_");
+
 export const siteUrlFor = (
   project: Pick<
     Project,
@@ -24,18 +28,9 @@ export const siteUrlFor = (
   const storedUrl =
     environment === "production" ? project.production_url : project.preview_url;
 
-  if (project.category === "rust-game") {
+  if (isRustGame(project)) {
     const gamePath = rustGamePath(project.slug);
-
-    if (environment === "production") {
-      return `${siteBases.production}/games/${gamePath}`;
-    }
-
-    if (storedUrl && storedUrl.trim() !== "") {
-      return trimTrailingSlash(storedUrl.trim());
-    }
-
-    return `${siteBases.preview}/${gamePath}`;
+    return `${siteBases[environment]}/games/${gamePath}`;
   }
 
   if (storedUrl && storedUrl.trim() !== "") {

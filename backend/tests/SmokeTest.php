@@ -47,6 +47,14 @@ final class SmokeTest extends TestCase
         self::assertSame('Sample Rust Game (Rust)', $batch['records'][0]['profile']['display_name']);
         self::assertSame('rust-game', $batch['records'][0]['profile']['category']);
         self::assertSame('rust_games', $batch['records'][0]['project']['group_name']);
+        self::assertSame(
+            'http://127.0.0.1/games/sample_rust_game/',
+            $batch['records'][0]['profile']['preview_url']
+        );
+        self::assertSame(
+            'https://webhatchery.au/games/sample_rust_game/',
+            $batch['records'][0]['profile']['production_url']
+        );
         self::assertSame('MVP', $batch['records'][0]['project']['status']);
         self::assertGreaterThanOrEqual(8.0, $batch['records'][0]['review']['overall_score']);
     }
@@ -172,7 +180,7 @@ final class SmokeTest extends TestCase
             self::assertSame('Sample Game (Rust)', $candidates[0]['display_name']);
             self::assertSame('rust-game', $candidates[0]['category']);
             self::assertSame('https://webhatchery.au/games/sample_game', $candidates[0]['production_url']);
-            self::assertSame('http://127.0.0.1/sample_game', $candidates[0]['preview_url']);
+            self::assertSame('http://127.0.0.1/games/sample_game', $candidates[0]['preview_url']);
         } finally {
             $this->removeDirectory($root);
         }

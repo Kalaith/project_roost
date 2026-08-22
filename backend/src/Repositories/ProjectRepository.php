@@ -503,20 +503,24 @@ final class ProjectRepository
     private function rowToProject(array $row): array
     {
         $repository = $this->repositoryMetadata($row);
+        $slug = (string) $row['slug'];
+        $category = (string) $row['category'];
+        $previewUrl = $this->projectSiteUrl($slug, $category, 'preview', $row['preview_url']);
+        $productionUrl = $this->projectSiteUrl($slug, $category, 'production', $row['production_url']);
 
         return [
             'id' => (int) $row['project_id'],
-            'slug' => (string) $row['slug'],
+            'slug' => $slug,
             'name' => (string) $row['title'],
             'display_name' => $this->displayName((string) ($row['display_name'] ?? ''), (string) $row['title']),
-            'category' => (string) $row['category'],
+            'category' => $category,
             'status' => $this->normalizeProjectStatus((string) $row['status']),
             'stage' => (string) $row['stage'],
             'shape' => (string) $row['shape'],
             'summary' => (string) ($row['summary'] ?: $row['description'] ?: ''),
             'repo_path' => $row['path'],
-            'preview_url' => $row['preview_url'],
-            'production_url' => $row['production_url'],
+            'preview_url' => $previewUrl,
+            'production_url' => $productionUrl,
             'version' => (string) $row['version'],
             'group_name' => (string) $row['group_name'],
             'repository_type' => $repository['repository_type'],
@@ -546,6 +550,27 @@ final class ProjectRepository
                 'notes' => (string) ($row['risk_notes'] ?? ''),
             ],
         ];
+    }
+
+    private function projectSiteUrl(string $slug, string $category, string $environment, mixed $storedUrl): mixed
+    {
+        if (!$this->isRustGame($slug, $category)) {
+            return $storedUrl;
+        }
+
+        $base = $environment === 'production' ? 'https://webhatchery.au' : 'http://127.0.0.1';
+
+        return $base . '/games/' . $this->rustGamePath($slug) . '/';
+    }
+
+    private function isRustGame(string $slug, string $category): bool
+    {
+        return $category === 'rust-game' || str_starts_with($slug, 'rust_');
+    }
+
+    private function rustGamePath(string $slug): string
+    {
+        return str_starts_with($slug, 'rust_') ? substr($slug, 5) : $slug;
     }
 
     private function repositoryMetadata(array $row): array

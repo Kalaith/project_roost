@@ -38,10 +38,26 @@ describe("siteLinks", () => {
       production_url: "https://webhatchery.au/ai_defense/",
     };
 
-    expect(siteUrlFor(rustGame, "preview")).toBe("http://127.0.0.1/ai_defense");
+    expect(siteUrlFor(rustGame, "preview")).toBe(
+      "http://127.0.0.1/games/ai_defense",
+    );
     expect(siteUrlFor(rustGame, "production")).toBe(
       "https://webhatchery.au/games/ai_defense",
     );
+  });
+
+  it("recognizes the Rust slug even when its category is stale", () => {
+    expect(
+      siteUrlFor(
+        {
+          slug: "rust_idle_hands",
+          category: "app",
+          preview_url: null,
+          production_url: null,
+        },
+        "production",
+      ),
+    ).toBe("https://webhatchery.au/games/idle_hands");
   });
 
   it("selects production only on WebHatchery hosts", () => {

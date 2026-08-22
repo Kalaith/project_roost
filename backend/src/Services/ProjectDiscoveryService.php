@@ -202,7 +202,7 @@ final class ProjectDiscoveryService
             'repo_path' => $path,
             'summary' => $this->summary($path, $manifest['description'] ?? null),
             'version' => (string)($manifest['version'] ?? '0.1.0'),
-            'preview_path' => '/' . $directorySlug . '/',
+            'preview_path' => '/games/' . $directorySlug . '/',
             'production_path' => '/games/' . $directorySlug . '/',
             'confidence' => $this->confidence($path, ['Cargo.toml', 'index.html', 'publish.ps1', 'README.md']),
         ]);

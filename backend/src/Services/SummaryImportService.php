@@ -408,7 +408,7 @@ final class SummaryImportService
                 'category' => 'rust-game',
                 'shape' => $hasServerComponent ? 'rust+webgl+server' : 'rust+webgl',
                 'summary' => $summary,
-                'preview_url' => 'http://127.0.0.1/' . $directorySlug . '/',
+                'preview_url' => 'http://127.0.0.1/games/' . $directorySlug . '/',
                 'production_url' => 'https://webhatchery.au/games/' . $directorySlug . '/',
                 'source' => $source,
             ],
