@@ -18,7 +18,7 @@ cd backend
 composer run db:init
 ```
 
-Required backend env values include `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `PROJECTS_TABLE`, `JWT_SECRET`, `PUBLISH_EVENT_TOKEN`, `WEBHATCHERY_LOGIN_URL`, `CORS_ORIGIN`, `API_BASE_PATH`, `APPS_SUMMARY_PATH`, and `GAME_APPS_SUMMARY_PATH`.
+Required backend env values include `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `PROJECTS_TABLE`, `JWT_SECRET`, `PUBLISH_EVENT_TOKEN`, `WEBHATCHERY_LOGIN_URL`, `CORS_ORIGIN`, `API_BASE_PATH`, `APPS_ROOT`, and `GAME_APPS_ROOT`. Summary import additionally requires the explicitly configured `APPS_SUMMARY_PATH` and `GAME_APPS_SUMMARY_PATH` files.
 
 The shared root `H:\WebHatchery\.env` can enable publish tracking with:
 

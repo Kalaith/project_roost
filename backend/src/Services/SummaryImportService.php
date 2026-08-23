@@ -447,57 +447,74 @@ final class SummaryImportService
 
     private function rustGamesPayloadFromRoot(): array
     {
-        $root = Env::required('RUST_GAMES_ROOT');
+        $manifestPath = __DIR__ . '/../../config/project-manifest.json';
+        $manifestContents = file_get_contents($manifestPath);
+        if (!is_string($manifestContents)) {
+            throw new RuntimeException('Project manifest could not be read: ' . $manifestPath);
+        }
+
+        $manifest = json_decode($manifestContents, true, 512, JSON_THROW_ON_ERROR);
+        $definition = $manifest['sources']['rust-games'] ?? null;
+        if (!is_array($definition)) {
+            throw new RuntimeException('Project manifest rust-games source definition is invalid.');
+        }
+
+        $rootEnv = trim((string) ($definition['root_env'] ?? ''));
+        $entries = $definition['entries'] ?? null;
+        if ($rootEnv === '' || !is_array($entries)) {
+            throw new RuntimeException('Project manifest rust-games source requires root_env and entries.');
+        }
+
+        $root = Env::required($rootEnv);
         if (!is_dir($root)) {
             throw new RuntimeException('RustGames root not found: ' . $root);
         }
 
         $projects = [];
         $latestMtime = 0;
-        $entries = scandir($root);
-        if ($entries === false) {
-            throw new RuntimeException('RustGames root could not be read: ' . $root);
-        }
-
         foreach ($entries as $entry) {
-            if ($entry === '.' || $entry === '..' || str_starts_with($entry, '.')) {
-                continue;
+            if (!is_string($entry) || trim($entry) === '' || preg_match('/[\\\\\/]/', $entry)) {
+                throw new RuntimeException('Project manifest contains an invalid rust-games entry.');
             }
 
+            $entry = trim($entry);
             $path = rtrim($root, '\\/') . DIRECTORY_SEPARATOR . $entry;
             if (!is_dir($path)) {
-                continue;
+                throw new RuntimeException('RustGames manifest entry is missing: ' . $path);
             }
 
             $cargoPath = $path . DIRECTORY_SEPARATOR . 'Cargo.toml';
             $indexPath = $path . DIRECTORY_SEPARATOR . 'index.html';
             if (!is_file($cargoPath) || !is_file($indexPath)) {
-                continue;
+                throw new RuntimeException('RustGames manifest entry is incomplete: ' . $path);
             }
 
-            $manifest = $this->parseCargoManifest((string) file_get_contents($cargoPath));
-            if (($manifest['name'] ?? '') === 'macroquad-toolkit') {
+            $cargoContents = file_get_contents($cargoPath);
+            if (!is_string($cargoContents)) {
+                throw new RuntimeException('RustGames Cargo manifest could not be read: ' . $cargoPath);
+            }
+            $cargoManifest = $this->parseCargoManifest($cargoContents);
+            if (($cargoManifest['name'] ?? '') === 'macroquad-toolkit') {
                 continue;
             }
 
             $readmePath = $path . DIRECTORY_SEPARATOR . 'README.md';
             $publishPath = $path . DIRECTORY_SEPARATOR . 'publish.ps1';
-            $sourcePath = $path . DIRECTORY_SEPARATOR . 'src';
             $projects[] = [
                 'slug' => $entry,
                 'directory' => $entry,
                 'path' => $path,
-                'package_name' => $manifest['name'] ?? $entry,
-                'version' => $manifest['version'] ?? '0.1.0',
-                'description' => $manifest['description'] ?? '',
+                'package_name' => $cargoManifest['name'] ?? $entry,
+                'version' => $cargoManifest['version'] ?? '0.1.0',
+                'description' => $cargoManifest['description'] ?? '',
                 'has_index' => true,
                 'has_publish_script' => is_file($publishPath),
                 'has_assets' => is_dir($path . DIRECTORY_SEPARATOR . 'assets'),
                 'has_readme' => is_file($readmePath),
                 'has_server_component' => $this->hasServerComponent($path),
-                'uses_macroquad' => $this->containsAny((string) file_get_contents($cargoPath), ['macroquad']),
+                'uses_macroquad' => $this->containsAny($cargoContents, ['macroquad']),
                 'readme_summary' => is_file($readmePath) ? $this->readmeSummary($readmePath) : '',
-                'source_files' => is_dir($sourcePath) ? $this->countRustSourceFiles($sourcePath) : 0,
+                'source_files' => 0,
             ];
 
             foreach ([$cargoPath, $indexPath, $publishPath, $readmePath] as $candidate) {
@@ -626,35 +643,13 @@ final class SummaryImportService
 
     private function hasServerComponent(string $path): bool
     {
-        $entries = scandir($path);
-        if ($entries === false) {
-            return false;
-        }
-
-        foreach ($entries as $entry) {
-            if ($entry === '.' || $entry === '..') {
-                continue;
-            }
-
-            if (str_contains(strtolower($entry), 'server') && is_dir($path . DIRECTORY_SEPARATOR . $entry)) {
+        foreach (['server', 'backend', 'api'] as $directory) {
+            if (is_dir($path . DIRECTORY_SEPARATOR . $directory)) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    private function countRustSourceFiles(string $path): int
-    {
-        $count = 0;
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $file) {
-            if ($file instanceof \SplFileInfo && $file->isFile() && strtolower($file->getExtension()) === 'rs') {
-                $count++;
-            }
-        }
-
-        return $count;
     }
 
     private function truncate(string $value, int $length): string

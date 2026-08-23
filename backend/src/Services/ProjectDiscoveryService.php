@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\Env;
+use RuntimeException;
 
 final class ProjectDiscoveryService
 {
@@ -36,7 +37,12 @@ final class ProjectDiscoveryService
 
             $path = rtrim($root, '\\/') . DIRECTORY_SEPARATOR . $entry['name'];
             if (!is_dir($path)) {
-                continue;
+                throw new RuntimeException(sprintf(
+                    'Project manifest entry path is missing for %s/%s: %s',
+                    $source,
+                    $entry['name'],
+                    $path
+                ));
             }
 
             $candidate = match ($source) {
@@ -94,26 +100,41 @@ final class ProjectDiscoveryService
         $entries = [];
         foreach ($manifest['sources'] as $source => $definition) {
             if (!is_array($definition)) {
-                continue;
+                throw new RuntimeException("Project manifest source definition must be an object: {$source}.");
+            }
+
+            if (!in_array($source, ['apps', 'games', 'rust-games'], true)) {
+                throw new RuntimeException("Project manifest contains unsupported source: {$source}.");
             }
 
             $rootEnv = trim((string) ($definition['root_env'] ?? ''));
             $names = $definition['entries'] ?? [];
-            if ($rootEnv === '' || !is_array($names)) {
-                continue;
+            if ($rootEnv === '' || !preg_match('/^[A-Z][A-Z0-9_]*$/', $rootEnv)) {
+                throw new RuntimeException("Project manifest source {$source} must define a valid root_env.");
+            }
+            if (!is_array($names)) {
+                throw new RuntimeException("Project manifest source {$source} entries must be an array.");
             }
 
             try {
                 $root = Env::required($rootEnv);
-            } catch (\Throwable) {
-                continue;
+            } catch (\Throwable $exception) {
+                throw new RuntimeException(
+                    "Project manifest source {$source} cannot resolve {$rootEnv}: {$exception->getMessage()}",
+                    0,
+                    $exception
+                );
+            }
+            if (!is_dir($root)) {
+                throw new RuntimeException("Project manifest root {$rootEnv} is not a directory: {$root}");
             }
 
             foreach ($names as $name) {
-                $name = trim((string) $name);
-                if ($name !== '') {
-                    $entries[] = ['source' => (string) $source, 'root' => $root, 'name' => $name];
+                if (!is_string($name) || trim($name) === '' || preg_match('/[\\\\\/]/', $name)) {
+                    throw new RuntimeException("Project manifest source {$source} contains an invalid entry name.");
                 }
+
+                $entries[] = ['source' => (string) $source, 'root' => $root, 'name' => trim($name)];
             }
         }
 
@@ -182,7 +203,7 @@ final class ProjectDiscoveryService
     {
         $cargoPath = $path . DIRECTORY_SEPARATOR . 'Cargo.toml';
         if (!is_file($cargoPath)) {
-            return null;
+            throw new RuntimeException("Rust project manifest is missing: {$cargoPath}");
         }
 
         $manifest = $this->cargoManifest((string)file_get_contents($cargoPath));

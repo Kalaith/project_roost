@@ -207,8 +207,8 @@ final class SmokeTest extends TestCase
         file_put_contents($manifestPath, (string) json_encode([
             'version' => 1,
             'sources' => [
-                'apps' => ['root_env' => 'APPS_SUMMARY_PATH', 'entries' => []],
-                'games' => ['root_env' => 'GAME_APPS_SUMMARY_PATH', 'entries' => []],
+                'apps' => ['root_env' => 'APPS_ROOT', 'entries' => []],
+                'games' => ['root_env' => 'GAME_APPS_ROOT', 'entries' => []],
                 'rust-games' => ['root_env' => 'RUST_GAMES_ROOT', 'entries' => ['sample_game']],
             ],
         ], JSON_THROW_ON_ERROR));
@@ -220,6 +220,8 @@ final class SmokeTest extends TestCase
 
         $_ENV['APPS_SUMMARY_PATH'] = $appsRoot . DIRECTORY_SEPARATOR . 'PROJECT_SUMMARY.html';
         $_ENV['GAME_APPS_SUMMARY_PATH'] = $gamesRoot . DIRECTORY_SEPARATOR . 'PROJECT_SUMMARY.html';
+        $_ENV['APPS_ROOT'] = $appsRoot;
+        $_ENV['GAME_APPS_ROOT'] = $gamesRoot;
         $_ENV['RUST_GAMES_ROOT'] = $rustRoot;
 
         try {
@@ -234,6 +236,52 @@ final class SmokeTest extends TestCase
             self::assertSame('http://127.0.0.1/games/sample_game', $candidates[0]['preview_url']);
         } finally {
             $this->removeDirectory($root);
+        }
+    }
+
+    public function testManifestRejectsInvalidSourceDefinition(): void
+    {
+        $manifestPath = tempnam(sys_get_temp_dir(), 'project_roost_manifest_');
+        self::assertIsString($manifestPath);
+        file_put_contents($manifestPath, (string) json_encode([
+            'version' => 1,
+            'sources' => ['apps' => 'invalid'],
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessage('source definition must be an object');
+            (new ProjectDiscoveryService($manifestPath))->discover([]);
+        } finally {
+            unlink($manifestPath);
+        }
+    }
+
+    public function testManifestRejectsMissingEnvironmentRoot(): void
+    {
+        $environmentName = 'PROJECT_ROOST_TEST_MISSING_ROOT';
+        unset($_ENV[$environmentName], $_SERVER[$environmentName]);
+        putenv($environmentName . '=');
+
+        $manifestPath = tempnam(sys_get_temp_dir(), 'project_roost_manifest_');
+        self::assertIsString($manifestPath);
+        file_put_contents($manifestPath, (string) json_encode([
+            'version' => 1,
+            'sources' => [
+                'apps' => [
+                    'root_env' => $environmentName,
+                    'entries' => [],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessage($environmentName);
+            (new ProjectDiscoveryService($manifestPath))->discover([]);
+        } finally {
+            unlink($manifestPath);
+            putenv($environmentName);
         }
     }
 

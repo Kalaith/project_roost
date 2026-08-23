@@ -3,7 +3,7 @@
   "generated_by": "project_roost",
   "sources": {
     "apps": {
-      "root_env": "APPS_SUMMARY_PATH",
+      "root_env": "APPS_ROOT",
       "entries": [
         "adventcon",
         "anime_prompt_gen",
@@ -30,7 +30,7 @@
       ]
     },
     "games": {
-      "root_env": "GAME_APPS_SUMMARY_PATH",
+      "root_env": "GAME_APPS_ROOT",
       "entries": [
         "adventurer_guild",
         "ashes_of_aeloria",

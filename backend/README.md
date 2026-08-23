@@ -17,9 +17,9 @@ PHP API for Project Roost. It stores canonical project rows in the shared `proje
 - `JWT_SECRET`
 - `PUBLISH_EVENT_TOKEN`
 - `WEBHATCHERY_LOGIN_URL`
-- `APPS_SUMMARY_PATH`
+- `APPS_ROOT`
 - `APPS_PROJECT_PATH_OVERRIDES` (optional semicolon-separated `slug=absolute-path` entries for apps stored outside the default apps workspace)
-- `GAME_APPS_SUMMARY_PATH`
+- `GAME_APPS_ROOT`
 - `RUST_GAMES_ROOT`
 
 Project discovery is manifest-driven. The checked-in
