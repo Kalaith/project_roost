@@ -311,7 +311,13 @@ final class DeploymentRepository
 
     private function deploymentProjectMetadata(string $slug, array $payload, ?string $sourcePath): array
     {
-        $displayName = $this->displayNameFromSlug($slug);
+        $gamePage = $this->gamePageMetadata($sourcePath);
+        $payloadDisplayName = $this->cleanText((string) ($payload['game_title'] ?? $payload['display_name'] ?? ''));
+        $displayName = $gamePage['title']
+            ?? ($payloadDisplayName !== '' ? $payloadDisplayName : $this->displayNameFromSlug($slug));
+        $payloadSummary = $this->cleanText((string) ($payload['game_description'] ?? $payload['description'] ?? ''));
+        $summary = $gamePage['description']
+            ?? ($payloadSummary !== '' ? $payloadSummary : $displayName . '.');
         $category = $this->categoryFromSourcePath($sourcePath);
         $hasBackend = (bool) ($payload['backend_deployed'] ?? false);
 
@@ -319,7 +325,7 @@ final class DeploymentRepository
             'display_name' => $displayName,
             'category' => $category,
             'shape' => $category === 'rust-game' ? 'rust+webgl' : ($hasBackend ? 'frontend+backend' : 'frontend-only'),
-            'summary' => $displayName . ' is a WebHatchery project deployed through the shared publisher.',
+            'summary' => $summary,
             'preview_url' => $this->previewUrlFromSlug($slug, $this->isRustGame($slug, $sourcePath)),
             'production_url' => $this->productionUrlFromRemotePath(
                 $payload['remote_path'] ?? null,
@@ -357,7 +363,48 @@ final class DeploymentRepository
             $displayName = 'Unknown Project';
         }
 
-        return $isRust ? $displayName . ' (Rust)' : $displayName;
+        return $displayName;
+    }
+
+    /**
+     * Read the game-authored title and blurb when a deployment comes from a
+     * RustGames project. Deployment tracking should describe the game, not the
+     * publisher or implementation behind it.
+     *
+     * @return array{title?: string, description?: string}
+     */
+    private function gamePageMetadata(?string $sourcePath): array
+    {
+        $sourcePath = trim((string) $sourcePath);
+        if ($sourcePath === '') {
+            return [];
+        }
+
+        $gamePagePath = rtrim($sourcePath, '\\/') . DIRECTORY_SEPARATOR . 'game_page.json';
+        if (!is_file($gamePagePath)) {
+            return [];
+        }
+
+        $decoded = json_decode((string) file_get_contents($gamePagePath), true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $about = $decoded['about'] ?? [];
+        $description = is_array($about) ? (string) ($about[0] ?? '') : '';
+
+        return array_filter([
+            'title' => $this->cleanText((string) ($decoded['title'] ?? '')),
+            'description' => $this->cleanText($description),
+        ], static fn (string $value): bool => $value !== '');
+    }
+
+    private function cleanText(string $value): string
+    {
+        $text = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5);
+        $text = preg_replace('/\s+/', ' ', $text) ?? '';
+
+        return trim($text);
     }
 
     private function categoryFromSourcePath(?string $sourcePath): string

@@ -212,7 +212,11 @@ final class ProjectDiscoveryService
         }
 
         $directorySlug = $this->slug($entry);
-        $displayName = $this->projectName($path, $manifest['name'] ?? null, $directorySlug) . ' (Rust)';
+        $gamePage = $this->gamePageMetadata($path);
+        $displayName = $gamePage['title']
+            ?? $this->projectName($path, $manifest['name'] ?? null, $directorySlug);
+        $summary = $gamePage['description']
+            ?? $this->summary($path, $manifest['description'] ?? null);
 
         return $this->candidate([
             'source' => 'rust-games',
@@ -224,7 +228,7 @@ final class ProjectDiscoveryService
             'shape' => $this->hasServerComponent($path) ? 'rust+webgl+server' : 'rust+webgl',
             'group_name' => 'rust_games',
             'repo_path' => $path,
-            'summary' => $this->summary($path, $manifest['description'] ?? null),
+            'summary' => $summary,
             'version' => (string)($manifest['version'] ?? '0.1.0'),
             'preview_path' => '/games/' . $directorySlug . '/',
             'production_path' => '/games/' . $directorySlug . '/',
@@ -240,7 +244,7 @@ final class ProjectDiscoveryService
     {
         $summary = trim((string)($data['summary'] ?? ''));
         if ($summary === '') {
-            $summary = (string)$data['display_name'] . ' in the WebHatchery ' . (string)$data['source'] . ' workspace.';
+            $summary = (string)$data['display_name'] . '.';
         }
 
         return [
@@ -439,6 +443,32 @@ final class ProjectDiscoveryService
         return $readme ?? '';
     }
 
+    /**
+     * Read the player-facing metadata used by the published game page.
+     *
+     * @return array{title?: string, description?: string}
+     */
+    private function gamePageMetadata(string $path): array
+    {
+        $gamePagePath = $path . DIRECTORY_SEPARATOR . 'game_page.json';
+        if (!is_file($gamePagePath)) {
+            return [];
+        }
+
+        $decoded = json_decode((string) file_get_contents($gamePagePath), true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $about = $decoded['about'] ?? [];
+        $description = is_array($about) ? (string) ($about[0] ?? '') : '';
+
+        return array_filter([
+            'title' => $this->cleanText((string) ($decoded['title'] ?? '')),
+            'description' => $this->cleanText($description),
+        ], static fn (string $value): bool => $value !== '');
+    }
+
     private function readmeTitle(string $path): ?string
     {
         foreach ($this->readmePaths($path) as $readmePath) {
@@ -566,5 +596,13 @@ final class ProjectDiscoveryService
         }
 
         return rtrim(substr($value, 0, $length - 3)) . '...';
+    }
+
+    private function cleanText(string $value): string
+    {
+        $text = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5);
+        $text = preg_replace('/\s+/', ' ', $text) ?? '';
+
+        return trim($text);
     }
 }

@@ -508,11 +508,16 @@ final class ProjectRepository
         $previewUrl = $this->projectSiteUrl($slug, $category, 'preview', $row['preview_url']);
         $productionUrl = $this->projectSiteUrl($slug, $category, 'production', $row['production_url']);
 
+        $displayName = $this->displayName((string) ($row['display_name'] ?? ''), (string) $row['title']);
+        if ($category === 'rust-game') {
+            $displayName = trim((string) preg_replace('/\s+\(Rust\)$/i', '', $displayName));
+        }
+
         return [
             'id' => (int) $row['project_id'],
             'slug' => $slug,
             'name' => (string) $row['title'],
-            'display_name' => $this->displayName((string) ($row['display_name'] ?? ''), (string) $row['title']),
+            'display_name' => $displayName,
             'category' => $category,
             'status' => $this->normalizeProjectStatus((string) $row['status']),
             'stage' => (string) $row['stage'],
@@ -703,11 +708,14 @@ final class ProjectRepository
             $this->upsertProfile($projectId, $record['profile']);
         } else {
             $this->updateProjectRow($projectId, $this->importProjectUpdates($record['project']));
-            // Preserve any existing profile summary. Descriptions are owned by each
-            // project's project_page.json and pushed via updateDetailsBySlug(); the
-            // summary-report import must not clobber them on re-publish. On first
-            // insert the report summary still seeds the profile above.
-            $this->upsertProfile($projectId, $this->preserveProfileSummary($projectId, $record['profile']));
+            // Rust game_page.json is the authoritative player-facing catalog copy.
+            // Other summary reports preserve manually curated profile copy, but
+            // RustGames imports must refresh titles and blurbs after metadata edits.
+            $profile = $record['profile'];
+            if (($profile['source'] ?? '') !== 'rust-games-summary') {
+                $profile = $this->preserveProfileSummary($projectId, $profile);
+            }
+            $this->upsertProfile($projectId, $profile);
         }
 
         return $projectId;

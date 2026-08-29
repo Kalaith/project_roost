@@ -38,6 +38,8 @@ final class SmokeTest extends TestCase
                 'package_name' => 'sample_rust_game',
                 'version' => '0.1.0',
                 'description' => 'A sample Rust web game.',
+                'game_title' => 'Sample Game',
+                'game_description' => 'Build a small settlement and defend it through the night.',
                 'has_index' => true,
                 'has_publish_script' => true,
                 'has_assets' => true,
@@ -57,7 +59,11 @@ final class SmokeTest extends TestCase
         self::assertCount(1, $batch['records']);
         self::assertSame('rust_sample_rust_game', $batch['records'][0]['profile']['slug']);
         self::assertSame('rust_sample_rust_game', $batch['records'][0]['project']['title']);
-        self::assertSame('Sample Rust Game (Rust)', $batch['records'][0]['profile']['display_name']);
+        self::assertSame('Sample Game', $batch['records'][0]['profile']['display_name']);
+        self::assertSame(
+            'Build a small settlement and defend it through the night.',
+            $batch['records'][0]['profile']['summary']
+        );
         self::assertSame('rust-game', $batch['records'][0]['profile']['category']);
         self::assertSame('rust_games', $batch['records'][0]['project']['group_name']);
         self::assertSame(
@@ -217,6 +223,13 @@ final class SmokeTest extends TestCase
             "[package]\nname = \"sample_game\"\nversion = \"0.2.0\"\ndescription = \"A sample Rust game.\"\n"
         );
         file_put_contents($sampleRoot . DIRECTORY_SEPARATOR . 'index.html', '<!doctype html>');
+        file_put_contents(
+            $sampleRoot . DIRECTORY_SEPARATOR . 'game_page.json',
+            (string) json_encode([
+                'title' => 'Sample Game',
+                'about' => ['Build a small settlement and defend it through the night.'],
+            ], JSON_THROW_ON_ERROR)
+        );
 
         $_ENV['APPS_SUMMARY_PATH'] = $appsRoot . DIRECTORY_SEPARATOR . 'PROJECT_SUMMARY.html';
         $_ENV['GAME_APPS_SUMMARY_PATH'] = $gamesRoot . DIRECTORY_SEPARATOR . 'PROJECT_SUMMARY.html';
@@ -230,7 +243,11 @@ final class SmokeTest extends TestCase
             self::assertCount(1, $candidates);
             self::assertSame('rust_sample_game', $candidates[0]['name']);
             self::assertSame('rust_sample_game', $candidates[0]['slug']);
-            self::assertSame('Sample Game (Rust)', $candidates[0]['display_name']);
+            self::assertSame('Sample Game', $candidates[0]['display_name']);
+            self::assertSame(
+                'Build a small settlement and defend it through the night.',
+                $candidates[0]['summary']
+            );
             self::assertSame('rust-game', $candidates[0]['category']);
             self::assertSame('https://webhatchery.au/games/sample_game', $candidates[0]['production_url']);
             self::assertSame('http://127.0.0.1/games/sample_game', $candidates[0]['preview_url']);

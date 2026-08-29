@@ -320,15 +320,22 @@ final class SummaryImportService
         }
 
         $slug = 'rust_' . $directorySlug;
-        $displayName = $this->titleFromSlug($directorySlug) . ' (Rust)';
-        $summary = $this->cleanText((string) ($item['description'] ?? ''));
+        $displayName = $this->cleanText((string) ($item['game_title'] ?? $item['title'] ?? ''));
+        if ($displayName === '') {
+            $displayName = $this->titleFromSlug($directorySlug);
+        }
+
+        $summary = $this->cleanText((string) ($item['game_description'] ?? ''));
+        if ($summary === '') {
+            $summary = $this->cleanText((string) ($item['description'] ?? ''));
+        }
         $readmeSummary = $this->cleanText((string) ($item['readme_summary'] ?? ''));
         if ($summary === '') {
             $summary = $readmeSummary;
         }
 
         if ($summary === '') {
-            $summary = $displayName . ' is a Rust game in the WebHatchery RustGames workspace.';
+            $summary = $displayName . '.';
         }
 
         $version = trim((string) ($item['version'] ?? '0.1.0'));
@@ -340,7 +347,9 @@ final class SummaryImportService
         $hasPublishScript = (bool) ($item['has_publish_script'] ?? false);
         $hasAssets = (bool) ($item['has_assets'] ?? false);
         $hasReadme = (bool) ($item['has_readme'] ?? false);
-        $hasDescription = trim((string) ($item['description'] ?? '')) !== '' || $readmeSummary !== '';
+        $hasDescription = trim((string) ($item['game_description'] ?? '')) !== ''
+            || trim((string) ($item['description'] ?? '')) !== ''
+            || $readmeSummary !== '';
         $hasServerComponent = (bool) ($item['has_server_component'] ?? false);
         $sourceFiles = max(0, (int) ($item['source_files'] ?? 0));
 
@@ -485,7 +494,8 @@ final class SummaryImportService
 
             $cargoPath = $path . DIRECTORY_SEPARATOR . 'Cargo.toml';
             $indexPath = $path . DIRECTORY_SEPARATOR . 'index.html';
-            if (!is_file($cargoPath) || !is_file($indexPath)) {
+            $gamePagePath = $path . DIRECTORY_SEPARATOR . 'game_page.json';
+            if (!is_file($cargoPath)) {
                 throw new RuntimeException('RustGames manifest entry is incomplete: ' . $path);
             }
 
@@ -498,6 +508,12 @@ final class SummaryImportService
                 continue;
             }
 
+            if (!is_file($indexPath) && !is_file($gamePagePath)) {
+                throw new RuntimeException('RustGames manifest entry is incomplete: ' . $path);
+            }
+
+            $gamePage = $this->gamePageMetadata($gamePagePath);
+
             $readmePath = $path . DIRECTORY_SEPARATOR . 'README.md';
             $publishPath = $path . DIRECTORY_SEPARATOR . 'publish.ps1';
             $projects[] = [
@@ -507,7 +523,9 @@ final class SummaryImportService
                 'package_name' => $cargoManifest['name'] ?? $entry,
                 'version' => $cargoManifest['version'] ?? '0.1.0',
                 'description' => $cargoManifest['description'] ?? '',
-                'has_index' => true,
+                'game_title' => $gamePage['title'] ?? '',
+                'game_description' => $gamePage['description'] ?? '',
+                'has_index' => is_file($indexPath),
                 'has_publish_script' => is_file($publishPath),
                 'has_assets' => is_dir($path . DIRECTORY_SEPARATOR . 'assets'),
                 'has_readme' => is_file($readmePath),
@@ -517,7 +535,7 @@ final class SummaryImportService
                 'source_files' => 0,
             ];
 
-            foreach ([$cargoPath, $indexPath, $publishPath, $readmePath] as $candidate) {
+            foreach ([$cargoPath, $indexPath, $gamePagePath, $publishPath, $readmePath] as $candidate) {
                 if (is_file($candidate)) {
                     $latestMtime = max($latestMtime, (int) filemtime($candidate));
                 }
@@ -639,6 +657,34 @@ final class SummaryImportService
         }
 
         return $this->truncate($this->cleanText(implode(' ', $paragraph)), 320);
+    }
+
+    /**
+     * Read the player-facing title and short blurb authored by each game.
+     *
+     * Cargo descriptions explain the crate; game_page.json explains the game.
+     * The latter is the source Project Roost should show to people.
+     *
+     * @return array{title?: string, description?: string}
+     */
+    private function gamePageMetadata(string $path): array
+    {
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $about = $decoded['about'] ?? [];
+        $description = is_array($about) ? (string) ($about[0] ?? '') : '';
+
+        return [
+            'title' => $this->cleanText((string) ($decoded['title'] ?? '')),
+            'description' => $this->cleanText($description),
+        ];
     }
 
     private function hasServerComponent(string $path): bool

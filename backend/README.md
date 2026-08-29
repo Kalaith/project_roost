@@ -67,4 +67,9 @@ It also writes `backend/database/project_roost_init.sql`, a single idempotent SQ
 
 ## RustGames Import
 
-`rust-games` imports scan `RUST_GAMES_ROOT` for immediate child projects that include both `Cargo.toml` and `index.html`. The shared publish script sends the same inventory inline when publishing Project Roost so production can refresh RustGames ratings without reading the local Windows path.
+`rust-games` imports scan `RUST_GAMES_ROOT` for immediate child projects that include
+`Cargo.toml` and either the source `game_page.json` or a generated `index.html`.
+The title and first `about` entry in `game_page.json` are the player-facing display
+name and short description; Rust remains internal catalog metadata. The shared
+publish script sends the same inventory inline when publishing Project Roost so
+production can refresh RustGames ratings without reading the local Windows path.
